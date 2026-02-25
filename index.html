@@ -101,7 +101,7 @@ body {
 .grid-tray {
   position: absolute; inset: 0;
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 20%;
+  grid-template-columns: 1fr 1fr 1fr 18%;
   grid-template-rows: repeat(4, 1fr);
   gap: 2px; padding: 3px 3px 31px 3px;
   background: #000;
@@ -221,13 +221,18 @@ body {
 .ice-zone { font-weight: 700; color: #242424; }
 .ice-val  { text-align: right; font-variant-numeric: tabular-nums; color: #2e2e2e; }
 /* shot log */
-.log-row { padding: 5px 10px; border-bottom: 1px solid #080808; font-size: 9px; color: #383838; display: grid; grid-template-columns: 24px 1fr 1fr 1fr; gap: 2px; align-items: center; }
+.log-row { padding: 5px 10px; border-bottom: 1px solid #080808; font-size: 9px; color: #383838; display: grid; grid-template-columns: 22px 1fr 1fr 1fr 20px; gap: 2px; align-items: center; }
 .log-zone { color: #888; font-weight: 700; }
 /* game picker */
 .game-row { padding: 8px 10px; border-bottom: 1px solid #0a0a0a; cursor: pointer; }
 .game-name { font-size: 11px; font-weight: 700; color: #888; }
 .game-date { font-size: 9px; color: #2a2a2a; margin-top: 1px; }
 .game-shots{ font-size: 9px; color: #1e1e1e; }
+.game-actions { display: flex; gap: 4px; margin-top: 5px; }
+.game-action-btn { flex: 1; padding: 4px 0; text-align: center; font-size: 9px; font-weight: 700; border-radius: 4px; cursor: pointer; }
+.ga-load   { background: #0a1a0d; color: #30D158; }
+.ga-rename { background: #111; color: #555; }
+.ga-delete { background: #1a0a0a; color: #FF453A; }
 /* profile sub */
 .prof-row { padding: 7px 10px; border-bottom: 1px solid #0a0a0a; display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .prof-name { font-size: 12px; font-weight: 800; color: #fff; flex: 1; }
@@ -337,7 +342,8 @@ body {
         <div class="menu-item c-grey nerd-item"   data-action="nav" data-sub="sc-ice">Ice Speeds</div>
         <div class="menu-item c-grey nerd-item"   data-action="nav" data-sub="sc-log">Shot Log</div>
         <div class="menu-item c-purple nerd-item" data-action="nav" data-sub="sc-profiles">Profiles</div>
-        <div class="menu-item c-blue"             data-action="export">Save &amp; Export</div>
+        <div class="menu-item c-blue"             data-action="nav" data-sub="sc-save">Save Game</div>
+        <div class="menu-item c-blue"             data-action="export">Export CSV</div>
         <div class="menu-item c-orange"           data-action="nav" data-sub="sc-games">Load Game</div>
         <div class="menu-item c-red"              data-action="confirm-new">New Game</div>
       </div>
@@ -345,8 +351,7 @@ body {
     </div>
     <!-- Ice speeds -->
     <div class="sub" id="sc-ice">
-      <div class="sub-hdr"><div class="sub-title">Ice Speeds</div><div class="sub-back" data-action="nav" data-sub="sc-main">‹ Back</div></div>
-      <div class="ice-player-row" id="ice-player" data-action="cycle-ice">— ›</div>
+      <div class="sub-hdr"><div class="sub-title" id="ice-title">Ice Speeds</div><div class="sub-back" data-action="nav" data-sub="sc-main">‹ Back</div></div>
       <div class="ice-col-hdr"><div></div><div>BH</div><div>HH</div></div>
       <div class="sub-body" id="ice-body"></div>
     </div>
@@ -360,6 +365,11 @@ body {
       <div class="sub-hdr"><div class="sub-title">Profiles</div><div class="sub-back" data-action="nav" data-sub="sc-main">‹ Back</div></div>
       <div class="sub-body" id="profiles-body"></div>
     </div>
+    <!-- Save game -->
+    <div class="sub" id="sc-save">
+      <div class="sub-hdr"><div class="sub-title">Save Game</div><div class="sub-back" data-action="nav" data-sub="sc-main">‹ Back</div></div>
+      <div class="sub-body" id="save-body"></div>
+    </div>
     <!-- Load game -->
     <div class="sub" id="sc-games">
       <div class="sub-hdr"><div class="sub-title">Load Game</div><div class="sub-back" data-action="nav" data-sub="sc-main">‹ Back</div></div>
@@ -369,8 +379,8 @@ body {
 
   <!-- Confirm new game -->
   <div class="overlay" id="ov-confirm">
-    <div class="ov-msg">New Game?<br><span class="ov-sub">Current shots saved to history.</span></div>
-    <div class="ov-btn ov-yes" data-action="do-new-game">NEW GAME</div>
+    <div class="ov-msg">Discard current game?<br><span class="ov-sub">Save first if you want to keep it.</span></div>
+    <div class="ov-btn ov-yes" data-action="do-new-game">DISCARD</div>
     <div class="ov-btn ov-no"  data-action="close-ov" data-ov="ov-confirm">CANCEL</div>
   </div>
 
@@ -790,10 +800,29 @@ class Session {
   }
 
   newGame(){
-    if(this.history.length)
-      this.archives.unshift({id:Date.now(),name:`Game ${this.archives.length+1}`,date:new Date().toLocaleDateString(),profiles:{...this.profiles},history:[...this.history]});
+    // Just discard — user must save explicitly first if they want to keep data
     this.history=[]; this.bh={iceBase:0}; this.hh={iceOff:0};
     this.slots={}; this._tag='g'+Date.now(); this.save();
+  }
+
+  saveGame(name){
+    if(!this.history.length) return false;
+    const n=name||(()=>{
+      const d=new Date(); 
+      return `${d.getMonth()+1}/${d.getDate()} Game`;
+    })();
+    this.archives.unshift({
+      id:Date.now(), name:n,
+      date:new Date().toLocaleDateString(),
+      profiles:{...this.profiles},
+      history:[...this.history]
+    });
+    this.save(); return true;
+  }
+
+  renameArchive(id, name){
+    const g=this.archives.find(a=>a.id===id); if(!g) return;
+    g.name=name; this.save();
   }
 
   loadArchive(id){
@@ -1066,6 +1095,7 @@ const App = {
     if(id==='sc-log') this._renderLog();
     if(id==='sc-profiles') this._renderProfiles();
     if(id==='sc-games') this._renderGames();
+    if(id==='sc-save') this._renderSave();
   },
   confirmNew(){ document.getElementById('ov-confirm').classList.add('show'); },
   closeOv(id){ document.getElementById(id).classList.remove('show'); },
@@ -1089,15 +1119,10 @@ const App = {
   },
 
   // ── ICE SPEEDS ───────────────────────────────
-  _iceSlots:['Skip','3rd','2nd','Lead'],
-  cycleIce(){
-    iceSlotIdx=(iceSlotIdx+1)%this._iceSlots.length;
-    this._renderIce();
-  },
   _renderIce(){
-    const id=this._iceSlots[iceSlotIdx];
-    const name=sess.profiles[id]||id;
-    document.getElementById('ice-player').textContent=name+' ›';
+    const id=sess.active; // use whatever is selected on main screen
+    const name=id?(sess.profiles[id]||id):'Team';
+    document.getElementById('ice-title').textContent='Ice · '+name;
     const rows=sess.iceSpeeds(id);
     document.getElementById('ice-body').innerHTML=rows.map(r=>
       `<div class="ice-row ${r.zone==='TEE'?'tee':''}">
@@ -1119,6 +1144,7 @@ const App = {
         <div style="font-variant-numeric:tabular-nums;">${s.bh!=null?s.bh.toFixed(2):'--'}</div>
         <div style="font-variant-numeric:tabular-nums;">${s.hh!=null?s.hh.toFixed(2):'--'}</div>
         <div class="log-zone">${s.zone||'?'}</div>
+        <div style="color:#444;font-size:8px;">${s.sweepLabel||'—'}</div>
       </div>`;
     }).join('');
   },
@@ -1192,26 +1218,28 @@ const App = {
       handle._last=now;
 
       switch(action){
-        case 'start':      this.tapStart(); break;
-        case 'toggle-bh':  this.toggleBH(); break;
-        case 'toggle-hh':  this.toggleHH(); break;
-        case 'zone':       this.tapZone(el.dataset.z); break;
-        case 'sweep':      this.tapSweep(el.dataset.s); break;
-        case 'discard':    this.doDiscard(); break;
-        case 'profile':    this.setProfile(el.dataset.id); break;
-        case 'toggle-mode':this.toggleMode(); break;
-        case 'nav':        this.openSub(el.dataset.sub); break;
-        case 'cycle-ice':  this.cycleIce(); break;
-        case 'export':     this.exportCSV(); break;
-        case 'confirm-new':this.confirmNew(); break;
-        case 'do-new-game':this.doNewGame(); break;
-        case 'close-ov':   this.closeOv(el.dataset.ov); break;
-        case 'close-menu': this.closeMenu(); break;
-        case 'close-pm':   this.closePM(); break;
-        case 'open-pm':    this.openPM(el.dataset.name); break;
-        case 'save-name':  this._saveName(el.dataset.id); break;
-        case 'save-off':   this._saveOff(el.dataset.id); break;
-        case 'load-game':  this._loadGame(parseInt(el.dataset.id)); break;
+        case 'start':       this.tapStart(); break;
+        case 'toggle-bh':   this.toggleBH(); break;
+        case 'toggle-hh':   this.toggleHH(); break;
+        case 'zone':        this.tapZone(el.dataset.z); break;
+        case 'sweep':       this.tapSweep(el.dataset.s); break;
+        case 'discard':     this.doDiscard(); break;
+        case 'profile':     this.setProfile(el.dataset.id); break;
+        case 'toggle-mode': this.toggleMode(); break;
+        case 'nav':         this.openSub(el.dataset.sub); break;
+        case 'export':      this.exportCSV(); break;
+        case 'do-save':     this.doSave(); break;
+        case 'confirm-new': this.confirmNew(); break;
+        case 'do-new-game': this.doNewGame(); break;
+        case 'close-ov':    this.closeOv(el.dataset.ov); break;
+        case 'close-menu':  this.closeMenu(); break;
+        case 'close-pm':    this.closePM(); break;
+        case 'open-pm':     this.openPM(el.dataset.name); break;
+        case 'save-name':   this._saveName(el.dataset.id); break;
+        case 'save-off':    this._saveOff(el.dataset.id); break;
+        case 'load-game':   this._loadGame(parseInt(el.dataset.id)); break;
+        case 'rename-game': this._renameGame(parseInt(el.dataset.id)); break;
+        case 'delete-game': this._deleteGame(parseInt(el.dataset.id)); break;
       }
     };
 
@@ -1314,15 +1342,43 @@ const App = {
     this.draw({liveBH:null,liveHH:null,...sw});
   },
 
-  // ── LOAD GAME ────────────────────────────────
+  // ── SAVE GAME ────────────────────────────────
+  _renderSave(){
+    const body=document.getElementById('save-body');
+    const n=sess.history.length;
+    body.innerHTML=`
+      <div style="padding:10px 12px 6px;font-size:10px;color:#444;">${n} shot${n!==1?'s':''} to save</div>
+      <input class="pm-input" id="save-name-inp" maxlength="20" placeholder="Game name (optional)"
+        style="margin:0 10px;width:calc(100% - 20px);box-sizing:border-box;">
+      <div class="pm-btn" style="margin:6px 10px;width:calc(100% - 20px);box-sizing:border-box;${n?'':'opacity:0.3;pointer-events:none;'}"
+        data-action="do-save">SAVE</div>
+      ${n===0?'<div style="padding:4px 12px;font-size:9px;color:#222;">No shots to save.</div>':''}
+    `;
+  },
+  doSave(){
+    const inp=document.getElementById('save-name-inp');
+    const name=inp?.value.trim()||null;
+    if(sess.saveGame(name)){
+      this.openSub('sc-main');
+    }
+  },
+
+  // ── LOAD GAME / FILE MANAGEMENT ──────────────
   _renderGames(){
     const body=document.getElementById('games-body');
     if(!sess.archives.length){ body.innerHTML='<div style="padding:14px;font-size:10px;color:#222;text-align:center;">No saved games</div>'; return; }
     body.innerHTML=sess.archives.map(a=>
-      `<div class="game-row" data-action="load-game" data-id="${a.id}">
-        <div class="game-name">${a.name}</div>
-        <div class="game-date">${a.date}</div>
-        <div class="game-shots">${a.history?.length||0} shots</div>
+      `<div class="game-row">
+        <div class="game-name" id="gname-${a.id}">${a.name}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span class="game-date">${a.date}</span>
+          <span class="game-shots">${a.history?.length||0} shots</span>
+        </div>
+        <div class="game-actions">
+          <div class="game-action-btn ga-load"   data-action="load-game"   data-id="${a.id}">Load</div>
+          <div class="game-action-btn ga-rename" data-action="rename-game" data-id="${a.id}">Rename</div>
+          <div class="game-action-btn ga-delete" data-action="delete-game" data-id="${a.id}">Delete</div>
+        </div>
       </div>`
     ).join('');
   },
@@ -1330,9 +1386,19 @@ const App = {
     sess.loadArchive(id);
     this.closeMenu(); sw.reset(); this.draw({liveBH:null,liveHH:null,...sw}); this.refreshProfiles();
   },
+  _renameGame(id){
+    const g=sess.archives.find(a=>a.id===id); if(!g) return;
+    const name=prompt('Rename game:', g.name);
+    if(name&&name.trim()){ sess.renameArchive(id, name.trim()); this._renderGames(); }
+  },
+  _deleteGame(id){
+    const g=sess.archives.find(a=>a.id===id); if(!g) return;
+    if(confirm(`Delete "${g.name}"?`)){ sess.deleteArchive(id); this._renderGames(); }
+  },
 
   // ── EXPORT ───────────────────────────────────
   exportCSV(){
+    if(!sess.history.length){ alert('No shots to export.'); return; }
     let csv='Player,BH,UseBH,HH,Zone,Sweep\n';
     sess.history.forEach(s=>{
       const name=s.player?(sess.profiles[s.player]||s.player):'—';
