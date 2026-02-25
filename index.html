@@ -376,6 +376,8 @@ body {
 const CFG = {
   bhSlope:-22.7, bhInt:109.9, hhSlope:-4.9, hhInt:90.6,
   minBH:2.0, maxBH:6.0, autoHog:5.5, minHH:7.0, maxHH:22.0, timeout:19.0,
+  priorStrength:12, // historical profile worth this many equiv in-game shots
+  nCap:8,           // max shots any one slot contributes to baseline
   zones:[
     {n:"High",d:2.5},{n:"Mid",d:7.5},{n:"Tight",d:12.5},
     {n:"T 12",d:15.5},{n:"T 8",d:17.5},{n:"T 4",d:19.5},
@@ -556,7 +558,7 @@ class Session {
 
   predict(type, t){
     if(type==='BH'){
-      if(t<CFG.minBH||t>CFG.maxBH) return null;
+      if(t<CFG.minBH) return null;  // match full-size: only lower bound here
       let off=this.bh.iceBase;
       if(this.active){
         const man=this.manOff[this.active]||0;
@@ -567,31 +569,170 @@ class Session {
       return(d>42||d<0)?null:d;
     }
     if(type==='HH'){
-      if(t<CFG.minHH||t>CFG.maxHH) return null;
+      if(t<CFG.minHH) return null;
       const d=CFG.hhSlope*t+CFG.hhInt+this.hh.iceOff;
       return d>42?null:d;
     }
     return null;
   }
 
+  // ── MASTER RECALIBRATION — mirrors full-size recalcStats() ──────────────
   recalibrate(){
-    const bhV=this.history.filter(s=>s.useBH&&s.actual!=null);
-    if(bhV.length){
-      const errs=bhV.map(s=>(s.actual-(s.sweep||0))-(CFG.bhSlope*s.bh+CFG.bhInt));
-      this.bh.iceBase=errs.reduce((a,b)=>a+b,0)/errs.length;
-      CFG.slots.forEach(id=>{
-        const shots=bhV.filter(s=>s.player===id);
-        if(!shots.length){this.slots[id]={effectiveOff:0,conf:0,n:0};return;}
-        const pErrs=shots.map(s=>(s.actual-(s.sweep||0))-(CFG.bhSlope*s.bh+CFG.bhInt)-this.bh.iceBase);
-        const off=pErrs.reduce((a,b)=>a+b,0)/pErrs.length;
-        this.slots[id]={effectiveOff:off,conf:Math.min(1,shots.length/15),n:shots.length};
+    this._recalibrateBH();
+    this._recalibrateHH();
+  }
+
+  // ── BH: 3-pass iterative Bayesian ───────────────────────────────────────
+  // Decomposes error into iceBaseline (shared) + per-slot offsets (relative, mean=0).
+  // Blends in-game data with PlayerStore historical prior (priorStrength=12 equiv shots).
+  _recalibrateBH(){
+    const slope=CFG.bhSlope, int_=CFG.bhInt;
+    const slotIds=CFG.slots;
+
+    const bhShots=this.history.filter(s=>s.useBH && s.bh>CFG.minBH && s.actual!=null);
+
+    if(!bhShots.length){
+      // No in-game data — populate slots from historical profiles for ice speed display
+      slotIds.forEach(id=>{
+        const hist=PS.get(this.profiles[id]);
+        if(hist && hist.shotCount>=2){
+          this.slots[id]={effectiveOff:hist.histOffset, conf:0, n:0};
+        } else {
+          this.slots[id]={effectiveOff:0, conf:0, n:0};
+        }
+      });
+      // Normalize: weighted mean of offsets = 0
+      let sW=0, sWO=0;
+      slotIds.forEach(id=>{
+        const hist=PS.get(this.profiles[id]);
+        if(!hist||hist.shotCount<2) return;
+        const w=1/Math.max(hist.histSigma,0.5);
+        sW+=w; sWO+=w*this.slots[id].effectiveOff;
+      });
+      if(sW>0){
+        const meanOff=sWO/sW;
+        slotIds.forEach(id=>{ this.slots[id].effectiveOff-=meanOff; });
+      }
+      this.bh.iceBase=0;
+      return;
+    }
+
+    let iceBase=this.bh.iceBase||0;
+    let finalBlended=null;
+
+    for(let iter=0; iter<3; iter++){
+
+      // PASS 1 — in-game offset per slot ─────────────────────────────────
+      const inGame={};
+      slotIds.forEach(id=>{
+        const shots=bhShots.filter(s=>s.player===id);
+        if(!shots.length){ inGame[id]={offset:0,sigma:99,n:0}; return; }
+        const res=shots.map(s=>(s.actual-(s.sweep||0))-(slope*s.bh+int_)-iceBase);
+        const mu=res.reduce((a,b)=>a+b,0)/res.length;
+        const sigma=Math.sqrt(res.map(r=>Math.pow(r-mu,2)).reduce((a,b)=>a+b,0)/res.length)||99;
+        inGame[id]={offset:mu, sigma, n:shots.length};
+      });
+
+      // PASS 2 — Bayesian blend with historical prior ─────────────────────
+      const blended={};
+      slotIds.forEach(id=>{
+        const ig=inGame[id];
+        const hist=PS.get(this.profiles[id]);
+        const sigIG  =Math.max(ig.sigma, 0.5);
+        const sigHist=hist ? Math.max(hist.histSigma, 0.5) : 99;
+        const wIG  =ig.n>0 ? ig.n/(sigIG*sigIG) : 0;
+        const wHist=hist   ? CFG.priorStrength/(sigHist*sigHist) : 0;
+        const wTotal=wIG+wHist;
+        const offset    =wTotal>0 ? (ig.offset*wIG+(hist?.histOffset||0)*wHist)/wTotal : 0;
+        const confidence=wTotal>0 ? wIG/wTotal : 0;
+        blended[id]={offset, confidence, n:ig.n};
+      });
+
+      // NORMALIZE — enforce weighted mean = 0, absorb remainder into iceBase
+      let sW=0, sWO=0;
+      slotIds.forEach(id=>{
+        const b=blended[id];
+        const hasData=b.n>0 || PS.get(this.profiles[id])!=null;
+        if(!hasData) return;
+        const w=b.confidence*Math.min(Math.max(b.n,1),CFG.nCap);
+        sW+=w; sWO+=w*b.offset;
+      });
+      if(sW>0){
+        const meanOff=sWO/sW;
+        slotIds.forEach(id=>{ blended[id].offset-=meanOff; });
+        iceBase+=meanOff;
+      }
+
+      // PASS 3 — recompute iceBase: confidence-weighted, per-slot 2σ outlier filter
+      const contribs=[];
+      slotIds.forEach(id=>{
+        const shots=bhShots.filter(s=>s.player===id);
+        if(!shots.length) return;
+        const errs=shots.map(s=>(s.actual-(s.sweep||0))-(slope*s.bh+int_)-blended[id].offset);
+        const mu=errs.reduce((a,b)=>a+b,0)/errs.length;
+        const sd=Math.sqrt(errs.map(r=>Math.pow(r-mu,2)).reduce((a,b)=>a+b,0)/errs.length)||0.5;
+        const clean=errs.filter(e=>Math.abs(e-mu)<=2*sd);
+        if(!clean.length) return;
+        const cmu=clean.reduce((a,b)=>a+b,0)/clean.length;
+        const csd=Math.sqrt(clean.map(r=>Math.pow(r-cmu,2)).reduce((a,b)=>a+b,0)/clean.length)||0.5;
+        const w=(blended[id].confidence+0.1)*Math.min(clean.length,CFG.nCap)/(csd*csd);
+        contribs.push({mean:cmu, weight:w});
+      });
+
+      // Unnamed/team shots: 0.4× penalty weight, no offset removed
+      const unShots=bhShots.filter(s=>!slotIds.includes(s.player));
+      if(unShots.length){
+        const errs=unShots.map(s=>(s.actual-(s.sweep||0))-(slope*s.bh+int_));
+        const mu=errs.reduce((a,b)=>a+b,0)/errs.length;
+        const sd=Math.sqrt(errs.map(r=>Math.pow(r-mu,2)).reduce((a,b)=>a+b,0)/errs.length)||0.5;
+        contribs.push({mean:mu, weight:0.4*Math.min(unShots.length,CFG.nCap)/(sd*sd)});
+      }
+
+      if(contribs.length){
+        const tW=contribs.reduce((a,c)=>a+c.weight,0);
+        if(tW>0) iceBase=contribs.reduce((a,c)=>a+c.mean*c.weight,0)/tW;
+      }
+
+      finalBlended=blended;
+    }
+
+    this.bh.iceBase=iceBase;
+    if(finalBlended){
+      slotIds.forEach(id=>{
+        this.slots[id]={effectiveOff:finalBlended[id].offset, conf:finalBlended[id].confidence, n:finalBlended[id].n};
       });
     }
-    const hhV=this.history.filter(s=>s.actual!=null);
-    if(hhV.length){
-      const errs=hhV.map(s=>s.actual-(CFG.hhSlope*s.hh+CFG.hhInt));
-      this.hh.iceOff=errs.reduce((a,b)=>a+b,0)/errs.length;
-    }
+  }
+
+  // ── HH: recency-weighted mean with 2σ outlier removal ───────────────────
+  _recalibrateHH(){
+    // Only shots where HH timing was valid and a result was entered
+    const valid=this.history.filter(s=>s.useHH && s.actual!=null);
+    if(!valid.length){ this.hh.iceOff=0; return; }
+
+    const pts=valid.map((s,i)=>{
+      const rawPred=CFG.hhSlope*s.hh+CFG.hhInt;
+      const error=s.actual-rawPred;
+      let weight=i<4 ? 1.0 : i<12 ? 0.6 : 0.2;
+      if(s.actual<14.0) weight*=0.5; // penalise short shots — less reliable
+      return {error, weight};
+    });
+
+    const s1=this._wStats(pts);
+    const clean=pts.filter(d=>{
+      if(s1.sd===0) return true;
+      return Math.abs(d.error-s1.mean)<=2*s1.sd;
+    });
+    this.hh.iceOff=clean.length ? this._wStats(clean).mean : s1.mean;
+  }
+
+  _wStats(data){
+    let sumW=0, sumVW=0;
+    data.forEach(d=>{ sumW+=d.weight; sumVW+=d.error*d.weight; });
+    if(!sumW) return {mean:0, sd:0};
+    const mean=sumVW/sumW;
+    const sd=Math.sqrt(data.reduce((a,d)=>a+Math.pow(d.error-mean,2)*d.weight,0)/sumW);
+    return {mean, sd};
   }
 
   addShot(bh,hh,zone,sweepLabel,useBH,useHH){
