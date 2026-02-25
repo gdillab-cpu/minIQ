@@ -250,11 +250,11 @@ body {
 
   <!-- TIMER BAR -->
   <div class="timer-bar">
-    <div class="timer-half left" id="half-bh" onclick="App.toggleBH()">
+    <div class="timer-half left" id="half-bh" data-action="toggle-bh">
       <div class="t-val dim" id="val-bh">--</div>
       <div class="t-est dim" id="est-bh"></div>
     </div>
-    <div class="timer-half right" id="half-hh" onclick="App.toggleHH()">
+    <div class="timer-half right" id="half-hh" data-action="toggle-hh">
       <div class="t-val dim" id="val-hh">--</div>
       <div class="t-est dim" id="est-hh"></div>
     </div>
@@ -262,38 +262,38 @@ body {
 
   <!-- PROFILE BAR -->
   <div class="profile-bar" id="profile-bar">
-    <div class="p-btn active" id="pbtn-Skip" onclick="App.setProfile('Skip')"><span id="plbl-Skip">SKIP</span><div class="pdot" id="pdot-Skip"></div></div>
-    <div class="p-btn" id="pbtn-3rd"  onclick="App.setProfile('3rd')"><span  id="plbl-3rd">3RD</span><div class="pdot" id="pdot-3rd"></div></div>
-    <div class="p-btn" id="pbtn-2nd"  onclick="App.setProfile('2nd')"><span  id="plbl-2nd">2ND</span><div class="pdot" id="pdot-2nd"></div></div>
-    <div class="p-btn" id="pbtn-Lead" onclick="App.setProfile('Lead')"><span id="plbl-Lead">LEAD</span><div class="pdot" id="pdot-Lead"></div></div>
+    <div class="p-btn active" id="pbtn-Skip" data-action="profile" data-id="Skip"><span id="plbl-Skip">SKIP</span><div class="pdot" id="pdot-Skip"></div></div>
+    <div class="p-btn" id="pbtn-3rd"  data-action="profile" data-id="3rd"><span  id="plbl-3rd">3RD</span><div class="pdot" id="pdot-3rd"></div></div>
+    <div class="p-btn" id="pbtn-2nd"  data-action="profile" data-id="2nd"><span  id="plbl-2nd">2ND</span><div class="pdot" id="pdot-2nd"></div></div>
+    <div class="p-btn" id="pbtn-Lead" data-action="profile" data-id="Lead"><span id="plbl-Lead">LEAD</span><div class="pdot" id="pdot-Lead"></div></div>
   </div>
 
   <!-- LOWER: grid + start cover -->
   <div class="lower-area">
     <div class="grid-tray" id="grid">
       <!-- Row 1 -->
-      <div class="gb front" data-z="High"  onclick="App.tapZone('High')">High</div>
-      <div class="gb front" data-z="Mid"   onclick="App.tapZone('Mid')">Mid</div>
-      <div class="gb front" data-z="Tight" onclick="App.tapZone('Tight')">Tight</div>
-      <div class="gb sweep" data-s="N/A"   onclick="App.tapSweep('N/A')">N/A</div>
+      <div class="gb front" data-action="zone" data-z="High">High</div>
+      <div class="gb front" data-action="zone" data-z="Mid">Mid</div>
+      <div class="gb front" data-action="zone" data-z="Tight">Tight</div>
+      <div class="gb sweep" data-action="sweep" data-s="N/A">N/A</div>
       <!-- Row 2 -->
-      <div class="gb house" data-z="T 12"  onclick="App.tapZone('T 12')">T 12</div>
-      <div class="gb house" data-z="T 8"   onclick="App.tapZone('T 8')">T 8</div>
-      <div class="gb disc"                  onclick="App.doDiscard()">disc</div>
-      <div class="gb sweep" data-s="L"     onclick="App.tapSweep('L')">L</div>
+      <div class="gb house" data-action="zone" data-z="T 12">T 12</div>
+      <div class="gb house" data-action="zone" data-z="T 8">T 8</div>
+      <div class="gb disc"  data-action="discard">disc</div>
+      <div class="gb sweep" data-action="sweep" data-s="L">L</div>
       <!-- Row 3 -->
-      <div class="gb house" data-z="T 4"   onclick="App.tapZone('T 4')">T 4</div>
-      <div class="gb house" data-z="TEE"   onclick="App.tapZone('TEE')">TEE</div>
-      <div class="gb house" data-z="B 8"   onclick="App.tapZone('B 8')">B 8</div>
-      <div class="gb sweep" data-s="M"     onclick="App.tapSweep('M')">M</div>
+      <div class="gb house" data-action="zone" data-z="T 4">T 4</div>
+      <div class="gb house" data-action="zone" data-z="TEE">TEE</div>
+      <div class="gb house" data-action="zone" data-z="B 8">B 8</div>
+      <div class="gb sweep" data-action="sweep" data-s="M">M</div>
       <!-- Row 4 -->
-      <div class="gb back"  data-z="THRU"  onclick="App.tapZone('THRU')">THRU</div>
-      <div class="gb back"  data-z="B 4"   onclick="App.tapZone('B 4')">B 4</div>
-      <div class="gb back"  data-z="B 12"  onclick="App.tapZone('B 12')">B 12</div>
-      <div class="gb sweep" data-s="H"     onclick="App.tapSweep('H')">H</div>
+      <div class="gb back"  data-action="zone" data-z="THRU">THRU</div>
+      <div class="gb back"  data-action="zone" data-z="B 4">B 4</div>
+      <div class="gb back"  data-action="zone" data-z="B 12">B 12</div>
+      <div class="gb sweep" data-action="sweep" data-s="H">H</div>
     </div>
 
-    <div class="start-cover" id="start-cover" onclick="App.tapStart()">
+    <div class="start-cover" id="start-cover" data-action="start">
       <span class="lbl-main" id="start-lbl">START</span>
       <span class="lbl-peek">START</span>
     </div>
@@ -305,7 +305,7 @@ body {
     <div class="sub active" id="sc-main">
       <div class="menu-header">
         <div class="menu-title">Menu</div>
-        <div class="mode-btn" id="mode-btn" onclick="App.toggleMode()">
+        <div class="mode-btn" id="mode-btn" data-action="toggle-mode">
           <svg id="mode-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
             <rect x="2" y="2" width="60" height="60" rx="15" fill="#B0B0B0"/>
             <g fill="none" stroke="#505050" stroke-width="5"><circle cx="22" cy="28" r="10"/><circle cx="42" cy="28" r="10"/></g>
@@ -316,35 +316,35 @@ body {
         </div>
       </div>
       <div class="menu-body">
-        <div class="menu-item c-grey nerd-item"   onclick="App.openSub('sc-ice')">Ice Speeds</div>
-        <div class="menu-item c-grey nerd-item"   onclick="App.openSub('sc-log')">Shot Log</div>
-        <div class="menu-item c-purple nerd-item" onclick="App.openSub('sc-profiles')">Profiles</div>
-        <div class="menu-item c-blue"             onclick="App.exportCSV()">Save &amp; Export</div>
-        <div class="menu-item c-orange"           onclick="App.openSub('sc-games')">Load Game</div>
-        <div class="menu-item c-red"              onclick="App.confirmNew()">New Game</div>
+        <div class="menu-item c-grey nerd-item"   data-action="nav" data-sub="sc-ice">Ice Speeds</div>
+        <div class="menu-item c-grey nerd-item"   data-action="nav" data-sub="sc-log">Shot Log</div>
+        <div class="menu-item c-purple nerd-item" data-action="nav" data-sub="sc-profiles">Profiles</div>
+        <div class="menu-item c-blue"             data-action="export">Save &amp; Export</div>
+        <div class="menu-item c-orange"           data-action="nav" data-sub="sc-games">Load Game</div>
+        <div class="menu-item c-red"              data-action="confirm-new">New Game</div>
       </div>
-      <div class="menu-foot" onclick="App.closeMenu()">← tap to close</div>
+      <div class="menu-foot" data-action="close-menu">← tap to close</div>
     </div>
     <!-- Ice speeds -->
     <div class="sub" id="sc-ice">
-      <div class="sub-hdr"><div class="sub-title">Ice Speeds</div><div class="sub-back" onclick="App.openSub('sc-main')">‹ Back</div></div>
-      <div class="ice-player-row" id="ice-player" onclick="App.cycleIce()">— ›</div>
+      <div class="sub-hdr"><div class="sub-title">Ice Speeds</div><div class="sub-back" data-action="nav" data-sub="sc-main">‹ Back</div></div>
+      <div class="ice-player-row" id="ice-player" data-action="cycle-ice">— ›</div>
       <div class="ice-col-hdr"><div></div><div>BH</div><div>HH</div></div>
       <div class="sub-body" id="ice-body"></div>
     </div>
     <!-- Shot log -->
     <div class="sub" id="sc-log">
-      <div class="sub-hdr"><div class="sub-title">Shot Log</div><div class="sub-back" onclick="App.openSub('sc-main')">‹ Back</div></div>
+      <div class="sub-hdr"><div class="sub-title">Shot Log</div><div class="sub-back" data-action="nav" data-sub="sc-main">‹ Back</div></div>
       <div class="sub-body" id="log-body"></div>
     </div>
     <!-- Profiles -->
     <div class="sub" id="sc-profiles">
-      <div class="sub-hdr"><div class="sub-title">Profiles</div><div class="sub-back" onclick="App.openSub('sc-main')">‹ Back</div></div>
+      <div class="sub-hdr"><div class="sub-title">Profiles</div><div class="sub-back" data-action="nav" data-sub="sc-main">‹ Back</div></div>
       <div class="sub-body" id="profiles-body"></div>
     </div>
     <!-- Load game -->
     <div class="sub" id="sc-games">
-      <div class="sub-hdr"><div class="sub-title">Load Game</div><div class="sub-back" onclick="App.openSub('sc-main')">‹ Back</div></div>
+      <div class="sub-hdr"><div class="sub-title">Load Game</div><div class="sub-back" data-action="nav" data-sub="sc-main">‹ Back</div></div>
       <div class="sub-body" id="games-body"></div>
     </div>
   </div><!-- /menu-overlay -->
@@ -352,20 +352,20 @@ body {
   <!-- Confirm new game -->
   <div class="overlay" id="ov-confirm">
     <div class="ov-msg">New Game?<br><span class="ov-sub">Current shots saved to history.</span></div>
-    <div class="ov-btn ov-yes" onclick="App.doNewGame()">NEW GAME</div>
-    <div class="ov-btn ov-no"  onclick="App.closeOv('ov-confirm')">CANCEL</div>
+    <div class="ov-btn ov-yes" data-action="do-new-game">NEW GAME</div>
+    <div class="ov-btn ov-no"  data-action="close-ov" data-ov="ov-confirm">CANCEL</div>
   </div>
 
   <!-- Profile modal -->
   <div class="pm" id="pm-modal">
-    <div class="pm-hdr"><div class="pm-title" id="pm-title">Profile</div><div class="pm-close" onclick="App.closePM()">Done</div></div>
+    <div class="pm-hdr"><div class="pm-title" id="pm-title">Profile</div><div class="pm-close" data-action="close-pm">Done</div></div>
     <div class="pm-body" id="pm-body"></div>
   </div>
 
 </div><!-- /watch-frame -->
 
 <!-- Tap outside watch to open menu on desktop -->
-<div id="hint" style="font-size:10px;color:#1e1e1e;letter-spacing:2px;font-weight:700;cursor:pointer;" onclick="App.openMenu()">MENU</div>
+<div id="hint" style="font-size:10px;color:#1e1e1e;letter-spacing:2px;font-weight:700;cursor:pointer;">MENU</div>
 
 <script>
 'use strict';
@@ -1114,7 +1114,7 @@ const App = {
     body.innerHTML=all.map(p=>{
       const offS=p.histOffset?((p.histOffset/CFG.bhSlope)*-1):0;
       const offStr=(offS>=0?'+':'')+offS.toFixed(2)+'s';
-      return `<div class="prof-row" onclick="App.openPM('${p.name}')">
+      return `<div class="prof-row" data-action="open-pm" data-name="${p.name}">
         <div class="prof-name">${p.name}</div>
         <div class="prof-meta">${p.shotCount} shots · ${p.gameCount} games</div>
         <div class="prof-off">${offStr}</div>
@@ -1137,10 +1137,10 @@ const App = {
       ${slotId?`
       <div class="pm-section">Rename slot</div>
       <input class="pm-input" id="pm-inp-name" maxlength="5" value="${name}">
-      <div class="pm-btn" onclick="App._saveName('${slotId}')">Save Name</div>
+      <div class="pm-btn" data-action="save-name" data-id="${slotId}">Save Name</div>
       <div class="pm-section">Manual offset (seconds)</div>
       <input class="pm-input" id="pm-inp-off" type="number" step="0.01" value="${man.toFixed(2)}">
-      <div class="pm-btn" onclick="App._saveOff('${slotId}')">Set Override</div>
+      <div class="pm-btn" data-action="save-off" data-id="${slotId}">Set Override</div>
       `:''}
     `;
     document.getElementById('pm-modal').classList.add('show');
@@ -1158,15 +1158,116 @@ const App = {
     sess.manOff[id]=isNaN(v)?0:parseFloat(v.toFixed(2)); sess.save();
   },
 
-  // Long-press profile btn
-  _initLongPress(){
-    CFG.slots.forEach(id=>{
-      const btn=document.getElementById('pbtn-'+id); if(!btn) return;
-      let t=null;
-      btn.addEventListener('touchstart',()=>{ t=setTimeout(()=>this.openPM(id),500); },{passive:true});
-      btn.addEventListener('touchend',()=>clearTimeout(t),{passive:true});
-      btn.addEventListener('touchmove',()=>clearTimeout(t),{passive:true});
+  // ── UNIFIED EVENT DISPATCH ───────────────────
+  // Mirrors full-size: touchstart fires instantly with preventDefault (no 300ms delay).
+  // mousedown handles desktop. Profile buttons use touchstart/touchend for long-press.
+  _initEvents(){
+    let isTouchDevice=false;
+    let swipeX0=0, swipeActive=false;
+    let longPressTimer=null;
+
+    // Central action handler
+    const handle=(action, el)=>{
+      const now=Date.now();
+      // Debounce: ignore duplicate fires within 150ms
+      if(now-(handle._last||0)<150 && action!=='toggle-bh' && action!=='toggle-hh') return;
+      handle._last=now;
+
+      switch(action){
+        case 'start':      this.tapStart(); break;
+        case 'toggle-bh':  this.toggleBH(); break;
+        case 'toggle-hh':  this.toggleHH(); break;
+        case 'zone':       this.tapZone(el.dataset.z); break;
+        case 'sweep':      this.tapSweep(el.dataset.s); break;
+        case 'discard':    this.doDiscard(); break;
+        case 'profile':    this.setProfile(el.dataset.id); break;
+        case 'toggle-mode':this.toggleMode(); break;
+        case 'nav':        this.openSub(el.dataset.sub); break;
+        case 'cycle-ice':  this.cycleIce(); break;
+        case 'export':     this.exportCSV(); break;
+        case 'confirm-new':this.confirmNew(); break;
+        case 'do-new-game':this.doNewGame(); break;
+        case 'close-ov':   this.closeOv(el.dataset.ov); break;
+        case 'close-menu': this.closeMenu(); break;
+        case 'close-pm':   this.closePM(); break;
+        case 'open-pm':    this.openPM(el.dataset.name); break;
+        case 'save-name':  this._saveName(el.dataset.id); break;
+        case 'save-off':   this._saveOff(el.dataset.id); break;
+        case 'load-game':  this._loadGame(parseInt(el.dataset.id)); break;
+      }
+    };
+
+    // TOUCH — instant fire on touchstart, block synthetic click
+    document.getElementById('watch').addEventListener('touchstart', e=>{
+      isTouchDevice=true;
+      swipeX0=e.touches[0].clientX;
+      swipeActive=true;
+
+      const el=e.target.closest('[data-action]');
+      if(!el) return;
+
+      const action=el.dataset.action;
+
+      // Profile buttons: start long-press timer, fire tap on touchend
+      if(action==='profile'){
+        longPressTimer=setTimeout(()=>{
+          longPressTimer=null;
+          e.preventDefault();
+          this.openPM(el.dataset.id);
+        }, 500);
+        return; // don't fire action yet — wait for touchend
+      }
+
+      e.preventDefault();
+      handle(action, el);
+    }, {passive:false});
+
+    // Profile tap on touchend (only if long-press didn't fire)
+    document.getElementById('watch').addEventListener('touchend', e=>{
+      if(longPressTimer){
+        clearTimeout(longPressTimer);
+        const el=e.target.closest('[data-action="profile"]');
+        if(el){ e.preventDefault(); handle('profile', el); }
+        longPressTimer=null;
+      }
+
+      // Swipe detection
+      if(!swipeActive) return;
+      swipeActive=false;
+      const dx=e.changedTouches[0].clientX-swipeX0;
+      const m=document.getElementById('menu-overlay');
+      if(dx<-40 && !m.classList.contains('open')) this.openMenu();
+      if(dx>40  &&  m.classList.contains('open')) this.closeMenu();
+    }, {passive:false});
+
+    document.getElementById('watch').addEventListener('touchmove', ()=>{
+      if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer=null; }
+    }, {passive:true});
+
+    // DESKTOP — mousedown for instant response (suppressed on touch)
+    document.getElementById('watch').addEventListener('mousedown', e=>{
+      if(isTouchDevice) return;
+      const el=e.target.closest('[data-action]');
+      if(el) handle(el.dataset.action, el);
     });
+
+    // Desktop hint button outside watch frame
+    document.getElementById('hint').addEventListener('mousedown', ()=>this.openMenu());
+    document.getElementById('hint').addEventListener('touchstart', e=>{
+      e.preventDefault(); this.openMenu();
+    }, {passive:false});
+  },
+
+  // ── BOOT ─────────────────────────────────────
+  init(){
+    sw.onTick   = t => this.draw(t);
+    sw.onFinish = s => {
+      this.draw({liveBH:null,liveHH:null,...s});
+      this._activateInput(s);
+    };
+    this._initEvents();
+    this.refreshProfiles();
+    this.draw({liveBH:null,liveHH:null,...sw});
   },
 
   // ── LOAD GAME ────────────────────────────────
@@ -1174,7 +1275,7 @@ const App = {
     const body=document.getElementById('games-body');
     if(!sess.archives.length){ body.innerHTML='<div style="padding:14px;font-size:10px;color:#222;text-align:center;">No saved games</div>'; return; }
     body.innerHTML=sess.archives.map(a=>
-      `<div class="game-row" onclick="App._loadGame(${a.id})">
+      `<div class="game-row" data-action="load-game" data-id="${a.id}">
         <div class="game-name">${a.name}</div>
         <div class="game-date">${a.date}</div>
         <div class="game-shots">${a.history?.length||0} shots</div>
@@ -1199,30 +1300,6 @@ const App = {
     this.closeMenu();
   },
 
-  // ── SWIPE GESTURE ────────────────────────────
-  _initSwipe(){
-    let x0=0;
-    document.getElementById('watch').addEventListener('touchstart',e=>{x0=e.touches[0].clientX;},{passive:true});
-    document.getElementById('watch').addEventListener('touchend',e=>{
-      const dx=e.changedTouches[0].clientX-x0;
-      const m=document.getElementById('menu-overlay');
-      if(dx<-40&&!m.classList.contains('open')) this.openMenu();
-      if(dx>40&&m.classList.contains('open')) this.closeMenu();
-    },{passive:true});
-  },
-
-  // ── BOOT ─────────────────────────────────────
-  init(){
-    sw.onTick   = t => this.draw(t);
-    sw.onFinish = s => {
-      this.draw({liveBH:null,liveHH:null,...s});
-      this._activateInput(s);
-    };
-    this._initSwipe();
-    this._initLongPress();
-    this.refreshProfiles();
-    this.draw({liveBH:null,liveHH:null,...sw});
-  }
 };
 
 App.init();
