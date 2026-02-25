@@ -77,19 +77,20 @@ body {
   height: 30px; flex-shrink: 0;
   display: grid; grid-template-columns: repeat(4,1fr);
   gap: 2px; padding: 2px;
-  background: #000; border-bottom: 1px solid #0f0f0f;
+  background: #000;
+  border-bottom: 2px solid rgba(10,132,255,0.22);
   transition: height 0.15s;
 }
 .profile-bar.simple-hidden { height: 0; overflow: hidden; padding: 0; border: none; }
 .p-btn {
-  background: #0d0d0d; border-radius: 4px;
-  font-size: 9px; font-weight: 800; color: #222;
+  background: #111; border-radius: 4px;
+  font-size: 9px; font-weight: 800; color: #444;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 2px; cursor: pointer; letter-spacing: 0.5px;
   transition: background 0.08s, color 0.08s;
 }
 .p-btn .pdot { width: 3px; height: 3px; border-radius: 50%; background: #fff; opacity: 0; }
-.p-btn.active { background: #1c1c1c; color: #fff; }
+.p-btn.active { background: #1e1e1e; color: #fff; }
 .p-btn.active .pdot { opacity: 0.5; }
 .p-btn.calibrated .pdot { opacity: 0.9; }
 
@@ -102,7 +103,7 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 20%;
   grid-template-rows: repeat(4, 1fr);
-  gap: 2px; padding: 3px 3px 31px 3px; /* 31px bottom = 28px peek + 3px gap */
+  gap: 2px; padding: 3px 3px 31px 3px;
   background: #000;
 }
 .gb {
@@ -112,21 +113,31 @@ body {
   cursor: pointer; transition: background 0.08s, color 0.08s;
   touch-action: manipulation;
 }
-.gb.front  { background: #0c0c1a; color: #242440; }
-.gb.front.sel  { background: #161628; color: #6e6ef0; }
-.gb.front:active { background: #1a1a30; }
-.gb.house  { background: #0a120a; color: #1c2e1c; }
-.gb.house.sel  { background: #0f2615; color: #30D158; }
-.gb.house:active { background: #122018; }
-.gb.back   { background: #08101c; color: #141e32; }
-.gb.back.sel   { background: #0c1c34; color: #0A84FF; }
-.gb.back:active { background: #101830; }
-.gb.sweep  { background: #0d0a14; color: #28182e; font-size: 9px; }
-.gb.sweep.sel  { background: #1c1028; color: #BF5AF2; }
-.gb.sweep:active { background: #201430; }
-.gb.sweep.off  { background: #060606; color: #0e0e0e; cursor: default; pointer-events: none; }
-.gb.disc   { background: transparent; border: 1px dashed #161616; color: #181818; font-size: 8px; font-style: italic; }
-.gb.disc:active { border-color: #FF453A; color: #FF453A; }
+/* Front/guard zones — indigo */
+.gb.front  { background: #0e0e20; color: #3e3e6a; }
+.gb.front.sel  { background: #181830; color: #7878f0; }
+.gb.front:active { background: #1c1c38; }
+/* In-house scoring zones — green */
+.gb.house  { background: #0b140b; color: #2a422a; }
+.gb.house.sel  { background: #102a14; color: #30D158; }
+.gb.house:active { background: #142e18; }
+/* Behind-house — also green (B4, B12 match house) */
+.gb.back   { background: #0b140b; color: #2a422a; }
+.gb.back.sel   { background: #102a14; color: #30D158; }
+.gb.back:active { background: #142e18; }
+/* THRU — blue (overcurl/behind-house, same family as guards) */
+.gb.thru   { background: #0a0e1a; color: #2a3050; }
+.gb.thru.sel   { background: #0e1830; color: #0A84FF; }
+/* Sweep column — purple */
+.gb.sweep  { background: #100d18; color: #3a2848; font-size: 9px; }
+.gb.sweep.sel  { background: #1e1030; color: #BF5AF2; }
+.gb.sweep:active { background: #221438; }
+.gb.sweep.off  { background: #060606; color: #111; cursor: default; pointer-events: none; }
+/* Discard — faint red */
+.gb.disc   { background: rgba(255,69,58,0.06); border: 1px dashed rgba(255,69,58,0.25); color: rgba(255,69,58,0.35); font-size: 8px; font-style: italic; }
+.gb.disc:active { background: rgba(255,69,58,0.15); border-color: #FF453A; color: #FF453A; }
+/* Blue accent divider between zone cols and sweep col */
+.gb.sweep { border-left: 1px solid rgba(10,132,255,0.15); }
 
 /* ─── START COVER ─── */
 .start-cover {
@@ -141,7 +152,14 @@ body {
 }
 .start-cover.peek { transform: translateY(calc(100% - 28px)); }
 .start-cover .lbl-main { }
-.start-cover .lbl-peek { display: none; font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #193d20; }
+.start-cover .lbl-peek {
+  display: none;
+  position: absolute;
+  /* bottom: -0.5em = text center sits at cover's bottom edge, top half visible in strip */
+  bottom: -0.5em;
+  font-size: 22px; font-weight: 800; letter-spacing: 3px;
+  color: #30D158;
+}
 .start-cover.peek .lbl-main { display: none; }
 .start-cover.peek .lbl-peek { display: block; }
 
@@ -287,7 +305,7 @@ body {
       <div class="gb house" data-action="zone" data-z="B 8">B 8</div>
       <div class="gb sweep" data-action="sweep" data-s="M">M</div>
       <!-- Row 4 -->
-      <div class="gb back"  data-action="zone" data-z="THRU">THRU</div>
+      <div class="gb back thru" data-action="zone" data-z="THRU">THRU</div>
       <div class="gb back"  data-action="zone" data-z="B 4">B 4</div>
       <div class="gb back"  data-action="zone" data-z="B 12">B 12</div>
       <div class="gb sweep" data-action="sweep" data-s="H">H</div>
@@ -364,8 +382,8 @@ body {
 
 </div><!-- /watch-frame -->
 
-<!-- Tap outside watch to open menu on desktop -->
-<div id="hint" style="font-size:10px;color:#1e1e1e;letter-spacing:2px;font-weight:700;cursor:pointer;">MENU</div>
+<!-- Desktop menu hint (hidden on mobile) -->
+<div id="hint" style="font-size:10px;color:#1e1e1e;letter-spacing:2px;font-weight:700;cursor:pointer;display:none;">MENU</div>
 
 <script>
 'use strict';
@@ -513,7 +531,7 @@ class Session {
     this.history    = s.history    || [];
     this.archives   = s.archives   || [];
     this.manOff     = s.manOff     || {};
-    this.active     = 'Skip';   // null = team "-"
+    this.active     = null;   // null = team "-"
     this.bh         = {iceBase:0};
     this.hh         = {iceOff:0};
     this.slots      = {}; // per-slot calibration
@@ -1250,8 +1268,8 @@ const App = {
         swipeActive=false;
         const dx=e.changedTouches[0].clientX-swipeX0;
         const m=document.getElementById('menu-overlay');
-        if(dx<-40 && !m.classList.contains('open')){ this.openMenu(); touchTarget=null; longPressTimer&&clearTimeout(longPressTimer); return; }
-        if(dx>40  &&  m.classList.contains('open')){ this.closeMenu(); touchTarget=null; longPressTimer&&clearTimeout(longPressTimer); return; }
+        if(dx<-30 && !m.classList.contains('open')){ this.openMenu(); touchTarget=null; longPressTimer&&clearTimeout(longPressTimer); return; }
+        if(dx>30  &&  m.classList.contains('open')){ this.closeMenu(); touchTarget=null; longPressTimer&&clearTimeout(longPressTimer); return; }
       }
 
       // Profile tap (long-press didn't fire)
