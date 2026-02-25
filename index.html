@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000">
+<title>Clock-Dilla Watch</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none; -webkit-user-select: none; }
+body {
+  background: #0a0a0a;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  min-height: 100vh; min-height: 100dvh;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  overflow: hidden; gap: 12px;
+}
+
+/* ─── WATCH SHELL ─── */
+.watch-frame {
+  width: 198px; height: 242px;
+  background: #000; border-radius: 54px;
+  border: 5px solid #1e1e1e; position: relative; overflow: hidden;
+  box-shadow: 0 0 0 1px #0d0d0d, 0 20px 60px rgba(0,0,0,0.95);
+  display: flex; flex-direction: column;
+  touch-action: none; flex-shrink: 0;
+}
+.watch-frame::after { /* crown */
+  content: ''; position: absolute; right: -11px; top: 50px;
+  width: 8px; height: 36px; background: #252525; border-radius: 3px; border: 1px solid #2a2a2a;
+}
+
+/* ─── TIMER BAR — 50px, blue accent ─── */
+.timer-bar {
+  height: 50px; flex-shrink: 0;
+  display: grid; grid-template-columns: 1fr 1fr;
+  background: #000;
+  border-bottom: 2px solid rgba(10,132,255,0.28);
+  box-shadow: 0 1px 8px rgba(10,132,255,0.04);
+  position: relative;
+}
+.timer-bar::after { /* center rule */
+  content: ''; position: absolute; left: 50%; top: 18%; bottom: 18%;
+  width: 1px; background: rgba(10,132,255,0.12); transform: translateX(-50%);
+}
+.timer-half {
+  position: relative;
+  display: flex; align-items: center; cursor: pointer;
+}
+.timer-half.left  { justify-content: flex-end; padding-right: 12px; }
+.timer-half.right { justify-content: flex-start; padding-left: 12px; }
+.t-val {
+  font-size: 25px; font-weight: 600;
+  font-variant-numeric: tabular-nums; letter-spacing: -0.5px; line-height: 1;
+  color: #fff; transition: color 0.15s;
+}
+.t-val.dim      { color: #1e1e1e; }
+.t-val.disabled { color: #141414; }
+.t-est {
+  position: absolute; bottom: 4px;
+  font-size: 10px; font-weight: 700; line-height: 1;
+  color: #777; letter-spacing: 0.3px; transition: color 0.15s;
+}
+.timer-half.left  .t-est { left: 7px; }
+.timer-half.right .t-est { right: 7px; }
+.t-est.dim { color: #181818; }
+.timer-half.off-col { opacity: 0.12; pointer-events: none; }
+
+/* ─── PROFILE BAR — 30px (hidden in simple mode) ─── */
+.profile-bar {
+  height: 30px; flex-shrink: 0;
+  display: grid; grid-template-columns: repeat(4,1fr);
+  gap: 2px; padding: 2px;
+  background: #000; border-bottom: 1px solid #0f0f0f;
+  transition: height 0.15s;
+}
+.profile-bar.simple-hidden { height: 0; overflow: hidden; padding: 0; border: none; }
+.p-btn {
+  background: #0d0d0d; border-radius: 4px;
+  font-size: 9px; font-weight: 800; color: #222;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; cursor: pointer; letter-spacing: 0.5px;
+  transition: background 0.08s, color 0.08s;
+}
+.p-btn .pdot { width: 3px; height: 3px; border-radius: 50%; background: #fff; opacity: 0; }
+.p-btn.active { background: #1c1c1c; color: #fff; }
+.p-btn.active .pdot { opacity: 0.5; }
+.p-btn.calibrated .pdot { opacity: 0.9; }
+
+/* ─── LOWER AREA ─── */
+.lower-area { flex: 1; position: relative; overflow: hidden; }
+
+/* ─── GRID TRAY ─── */
+.grid-tray {
+  position: absolute; inset: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 20%;
+  grid-template-rows: repeat(4, 1fr);
+  gap: 2px; padding: 3px; background: #000;
+}
+.gb {
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.3px;
+  cursor: pointer; transition: background 0.08s, color 0.08s;
+  touch-action: manipulation;
+}
+.gb.front  { background: #0c0c1a; color: #242440; }
+.gb.front.sel  { background: #161628; color: #6e6ef0; }
+.gb.front:active { background: #1a1a30; }
+.gb.house  { background: #0a120a; color: #1c2e1c; }
+.gb.house.sel  { background: #0f2615; color: #30D158; }
+.gb.house:active { background: #122018; }
+.gb.back   { background: #08101c; color: #141e32; }
+.gb.back.sel   { background: #0c1c34; color: #0A84FF; }
+.gb.back:active { background: #101830; }
+.gb.sweep  { background: #0d0a14; color: #28182e; font-size: 9px; }
+.gb.sweep.sel  { background: #1c1028; color: #BF5AF2; }
+.gb.sweep:active { background: #201430; }
+.gb.sweep.off  { background: #060606; color: #0e0e0e; cursor: default; pointer-events: none; }
+.gb.disc   { background: transparent; border: 1px dashed #161616; color: #181818; font-size: 8px; font-style: italic; }
+.gb.disc:active { border-color: #FF453A; color: #FF453A; }
+
+/* ─── START COVER ─── */
+.start-cover {
+  position: absolute; inset: 0;
+  background: #0a1a0d;
+  border-top: 1px solid rgba(48,209,88,0.12);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 800; letter-spacing: 3px;
+  color: #30D158; cursor: pointer; touch-action: manipulation;
+  transition: transform 0.22s cubic-bezier(0.34,1.56,0.64,1);
+  will-change: transform;
+}
+.start-cover.peek { transform: translateY(calc(100% - 28px)); }
+.start-cover .lbl-main { }
+.start-cover .lbl-peek { display: none; font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #193d20; }
+.start-cover.peek .lbl-main { display: none; }
+.start-cover.peek .lbl-peek { display: block; }
+
+/* ─── MENU OVERLAY ─── */
+.menu-overlay {
+  position: absolute; inset: 0; z-index: 100;
+  background: #000;
+  transform: translateX(100%); transition: transform 0.2s ease;
+  border-radius: 49px; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.menu-overlay.open { transform: translateX(0); }
+.menu-header {
+  padding: 14px 12px 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid #141414;
+}
+.menu-title { font-size: 14px; font-weight: 800; color: #fff; }
+.mode-btn { width: 26px; height: 26px; cursor: pointer; }
+.mode-btn svg { width: 100%; height: 100%; display: block; }
+.menu-body { flex: 1; overflow-y: auto; }
+.menu-item {
+  padding: 9px 14px; font-size: 11px; font-weight: 600;
+  border-bottom: 1px solid #0a0a0a;
+  display: flex; align-items: center; gap: 7px; cursor: pointer;
+  touch-action: manipulation;
+}
+.menu-item::before { content: '›'; font-size: 13px; }
+.c-grey   { color: #555; } .c-grey::before   { color: #333; }
+.c-orange { color: #FF9F0A; } .c-orange::before { color: #FF9F0A; }
+.c-blue   { color: #0A84FF; } .c-blue::before   { color: #0A84FF; }
+.c-green  { color: #30D158; } .c-green::before  { color: #30D158; }
+.c-red    { color: #FF453A; } .c-red::before    { color: #FF453A; }
+.c-purple { color: #BF5AF2; } .c-purple::before { color: #BF5AF2; }
+.menu-foot {
+  padding: 8px; font-size: 9px; color: #1a1a1a; text-align: center;
+  letter-spacing: 1px; border-top: 1px solid #0a0a0a; flex-shrink: 0; cursor: pointer;
+}
+/* sub-screens */
+.sub { display: none; flex-direction: column; height: 100%; }
+.sub.active { display: flex; }
+.sub-hdr {
+  padding: 8px 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid #141414;
+}
+.sub-title { font-size: 11px; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
+.sub-back  { font-size: 11px; color: #0A84FF; cursor: pointer; touch-action: manipulation; }
+.sub-body  { flex: 1; overflow-y: auto; }
+/* ice speeds */
+.ice-player-row {
+  padding: 5px 10px; font-size: 10px; font-weight: 800; color: #0A84FF;
+  text-align: right; cursor: pointer; border-bottom: 1px solid #0a0a0a;
+}
+.ice-col-hdr { display: grid; grid-template-columns: 38px 1fr 1fr; padding: 3px 10px; font-size: 9px; color: #252525; font-weight: 700; border-bottom: 1px solid #080808; }
+.ice-col-hdr div:not(:first-child) { text-align: right; }
+.ice-row { display: grid; grid-template-columns: 38px 1fr 1fr; padding: 5px 10px; border-bottom: 1px solid #080808; font-size: 10px; cursor: pointer; }
+.ice-row.tee .ice-zone, .ice-row.tee .ice-val { color: #fff; }
+.ice-zone { font-weight: 700; color: #242424; }
+.ice-val  { text-align: right; font-variant-numeric: tabular-nums; color: #2e2e2e; }
+/* shot log */
+.log-row { padding: 5px 10px; border-bottom: 1px solid #080808; font-size: 9px; color: #383838; display: grid; grid-template-columns: 24px 1fr 1fr 1fr; gap: 2px; align-items: center; }
+.log-zone { color: #888; font-weight: 700; }
+/* game picker */
+.game-row { padding: 8px 10px; border-bottom: 1px solid #0a0a0a; cursor: pointer; }
+.game-name { font-size: 11px; font-weight: 700; color: #888; }
+.game-date { font-size: 9px; color: #2a2a2a; margin-top: 1px; }
+.game-shots{ font-size: 9px; color: #1e1e1e; }
+/* profile sub */
+.prof-row { padding: 7px 10px; border-bottom: 1px solid #0a0a0a; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.prof-name { font-size: 12px; font-weight: 800; color: #fff; flex: 1; }
+.prof-meta { font-size: 9px; color: #2a2a2a; }
+.prof-off  { font-size: 10px; font-weight: 700; color: #555; }
+
+/* ─── OVERLAYS ─── */
+.overlay {
+  position: absolute; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.95);
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; border-radius: 49px;
+}
+.overlay.show { display: flex; }
+.ov-msg  { font-size: 12px; color: #666; text-align: center; padding: 0 16px; line-height: 1.5; }
+.ov-sub  { font-size: 9px; color: #282828; }
+.ov-btn  { padding: 8px 20px; border-radius: 8px; font-size: 11px; font-weight: 800; letter-spacing: 1px; cursor: pointer; touch-action: manipulation; }
+.ov-yes  { background: #FF453A; color: #fff; }
+.ov-no   { background: #141414; color: #555; }
+/* profile modal */
+.pm { position: absolute; inset: 0; z-index: 150; background: rgba(0,0,0,0.96); display: none; flex-direction: column; border-radius: 49px; overflow: hidden; }
+.pm.show { display: flex; }
+.pm-hdr  { padding: 12px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #141414; flex-shrink: 0; }
+.pm-title{ font-size: 12px; font-weight: 800; color: #fff; }
+.pm-close{ font-size: 11px; color: #0A84FF; cursor: pointer; }
+.pm-body { padding: 8px 12px; overflow-y: auto; }
+.pm-row  { padding: 4px 0; font-size: 10px; display: flex; justify-content: space-between; border-bottom: 1px solid #0a0a0a; }
+.pm-lbl  { color: #2a2a2a; }
+.pm-val  { color: #777; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pm-input{ background: #111; border: 1px solid #333; color: #fff; font-size: 11px; font-weight: 700; padding: 5px 8px; border-radius: 4px; width: 100%; text-align: center; font-family: inherit; margin-top: 5px; outline: none; }
+.pm-btn  { background: #141414; color: #0A84FF; font-size: 10px; font-weight: 700; padding: 7px; border-radius: 6px; cursor: pointer; width: 100%; margin-top: 5px; text-align: center; touch-action: manipulation; }
+.pm-section { font-size: 9px; color: #252525; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-top: 8px; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+
+<div class="watch-frame" id="watch">
+
+  <!-- TIMER BAR -->
+  <div class="timer-bar">
+    <div class="timer-half left" id="half-bh" onclick="App.toggleBH()">
+      <div class="t-val dim" id="val-bh">--</div>
+      <div class="t-est dim" id="est-bh"></div>
+    </div>
+    <div class="timer-half right" id="half-hh">
+      <div class="t-val dim" id="val-hh">--</div>
+      <div class="t-est dim" id="est-hh"></div>
+    </div>
+  </div>
+
+  <!-- PROFILE BAR -->
+  <div class="profile-bar" id="profile-bar">
+    <div class="p-btn active" id="pbtn-Skip" onclick="App.setProfile('Skip')"><span id="plbl-Skip">SKIP</span><div class="pdot" id="pdot-Skip"></div></div>
+    <div class="p-btn" id="pbtn-3rd"  onclick="App.setProfile('3rd')"><span  id="plbl-3rd">3RD</span><div class="pdot" id="pdot-3rd"></div></div>
+    <div class="p-btn" id="pbtn-2nd"  onclick="App.setProfile('2nd')"><span  id="plbl-2nd">2ND</span><div class="pdot" id="pdot-2nd"></div></div>
+    <div class="p-btn" id="pbtn-Lead" onclick="App.setProfile('Lead')"><span id="plbl-Lead">LEAD</span><div class="pdot" id="pdot-Lead"></div></div>
+  </div>
+
+  <!-- LOWER: grid + start cover -->
+  <div class="lower-area">
+    <div class="grid-tray" id="grid">
+      <!-- Row 1 -->
+      <div class="gb front" data-z="High"  onclick="App.tapZone('High')">High</div>
+      <div class="gb front" data-z="Mid"   onclick="App.tapZone('Mid')">Mid</div>
+      <div class="gb front" data-z="Tight" onclick="App.tapZone('Tight')">Tight</div>
+      <div class="gb sweep" data-s="N/A"   onclick="App.tapSweep('N/A')">N/A</div>
+      <!-- Row 2 -->
+      <div class="gb house" data-z="T 12"  onclick="App.tapZone('T 12')">T 12</div>
+      <div class="gb house" data-z="T 8"   onclick="App.tapZone('T 8')">T 8</div>
+      <div class="gb disc"                  onclick="App.doDiscard()">disc</div>
+      <div class="gb sweep" data-s="L"     onclick="App.tapSweep('L')">L</div>
+      <!-- Row 3 -->
+      <div class="gb house" data-z="T 4"   onclick="App.tapZone('T 4')">T 4</div>
+      <div class="gb house" data-z="TEE"   onclick="App.tapZone('TEE')">TEE</div>
+      <div class="gb house" data-z="B 8"   onclick="App.tapZone('B 8')">B 8</div>
+      <div class="gb sweep" data-s="M"     onclick="App.tapSweep('M')">M</div>
+      <!-- Row 4 -->
+      <div class="gb back"  data-z="THRU"  onclick="App.tapZone('THRU')">THRU</div>
+      <div class="gb back"  data-z="B 4"   onclick="App.tapZone('B 4')">B 4</div>
+      <div class="gb back"  data-z="B 12"  onclick="App.tapZone('B 12')">B 12</div>
+      <div class="gb sweep" data-s="H"     onclick="App.tapSweep('H')">H</div>
+    </div>
+
+    <div class="start-cover" id="start-cover" onclick="App.tapStart()">
+      <span class="lbl-main" id="start-lbl">START</span>
+      <span class="lbl-peek">START</span>
+    </div>
+  </div>
+
+  <!-- MENU OVERLAY -->
+  <div class="menu-overlay" id="menu-overlay">
+    <!-- Main -->
+    <div class="sub active" id="sc-main">
+      <div class="menu-header">
+        <div class="menu-title">Menu</div>
+        <div class="mode-btn" id="mode-btn" onclick="App.toggleMode()">
+          <svg id="mode-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+            <rect x="2" y="2" width="60" height="60" rx="15" fill="#B0B0B0"/>
+            <g fill="none" stroke="#505050" stroke-width="5"><circle cx="22" cy="28" r="10"/><circle cx="42" cy="28" r="10"/></g>
+            <g fill="#505050"><circle cx="22" cy="28" r="4"/><circle cx="42" cy="28" r="4"/></g>
+            <path d="M22 46 Q32 54 42 46" fill="none" stroke="#505050" stroke-width="3" stroke-linecap="round"/>
+            <path d="M32 58 L24 54 V62 Z M32 58 L40 54 V62 Z" fill="#505050"/>
+          </svg>
+        </div>
+      </div>
+      <div class="menu-body">
+        <div class="menu-item c-grey nerd-item"   onclick="App.openSub('sc-ice')">Ice Speeds</div>
+        <div class="menu-item c-grey nerd-item"   onclick="App.openSub('sc-log')">Shot Log</div>
+        <div class="menu-item c-purple nerd-item" onclick="App.openSub('sc-profiles')">Profiles</div>
+        <div class="menu-item c-blue"             onclick="App.exportCSV()">Save &amp; Export</div>
+        <div class="menu-item c-orange"           onclick="App.openSub('sc-games')">Load Game</div>
+        <div class="menu-item c-red"              onclick="App.confirmNew()">New Game</div>
+      </div>
+      <div class="menu-foot" onclick="App.closeMenu()">← tap to close</div>
+    </div>
+    <!-- Ice speeds -->
+    <div class="sub" id="sc-ice">
+      <div class="sub-hdr"><div class="sub-title">Ice Speeds</div><div class="sub-back" onclick="App.openSub('sc-main')">‹ Back</div></div>
+      <div class="ice-player-row" id="ice-player" onclick="App.cycleIce()">— ›</div>
+      <div class="ice-col-hdr"><div></div><div>BH</div><div>HH</div></div>
+      <div class="sub-body" id="ice-body"></div>
+    </div>
+    <!-- Shot log -->
+    <div class="sub" id="sc-log">
+      <div class="sub-hdr"><div class="sub-title">Shot Log</div><div class="sub-back" onclick="App.openSub('sc-main')">‹ Back</div></div>
+      <div class="sub-body" id="log-body"></div>
+    </div>
+    <!-- Profiles -->
+    <div class="sub" id="sc-profiles">
+      <div class="sub-hdr"><div class="sub-title">Profiles</div><div class="sub-back" onclick="App.openSub('sc-main')">‹ Back</div></div>
+      <div class="sub-body" id="profiles-body"></div>
+    </div>
+    <!-- Load game -->
+    <div class="sub" id="sc-games">
+      <div class="sub-hdr"><div class="sub-title">Load Game</div><div class="sub-back" onclick="App.openSub('sc-main')">‹ Back</div></div>
+      <div class="sub-body" id="games-body"></div>
+    </div>
+  </div><!-- /menu-overlay -->
+
+  <!-- Confirm new game -->
+  <div class="overlay" id="ov-confirm">
+    <div class="ov-msg">New Game?<br><span class="ov-sub">Current shots saved to history.</span></div>
+    <div class="ov-btn ov-yes" onclick="App.doNewGame()">NEW GAME</div>
+    <div class="ov-btn ov-no"  onclick="App.closeOv('ov-confirm')">CANCEL</div>
+  </div>
+
+  <!-- Profile modal -->
+  <div class="pm" id="pm-modal">
+    <div class="pm-hdr"><div class="pm-title" id="pm-title">Profile</div><div class="pm-close" onclick="App.closePM()">Done</div></div>
+    <div class="pm-body" id="pm-body"></div>
+  </div>
+
+</div><!-- /watch-frame -->
+
+<!-- Tap outside watch to open menu on desktop -->
+<div id="hint" style="font-size:10px;color:#1e1e1e;letter-spacing:2px;font-weight:700;cursor:pointer;" onclick="App.openMenu()">MENU</div>
+
+<script>
+'use strict';
+
+// ════════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════════
+const CFG = {
+  bhSlope:-22.7, bhInt:109.9, hhSlope:-4.9, hhInt:90.6,
+  minBH:2.0, maxBH:6.0, autoHog:5.5, minHH:7.0, maxHH:22.0,
+  zones:[
+    {n:"High",d:2.5},{n:"Mid",d:7.5},{n:"Tight",d:12.5},
+    {n:"T 12",d:15.5},{n:"T 8",d:17.5},{n:"T 4",d:19.5},
+    {n:"TEE",d:21.0},
+    {n:"B 8",d:24.5},{n:"B 4",d:22.5},{n:"B 12",d:26.5},
+    {n:"THRU",d:29.75},{n:"Hack",d:33.0}
+  ],
+  sweeps:[{n:'N/A',v:0},{n:'L',v:1.0},{n:'M',v:2.5},{n:'H',v:5.3}],
+  slots:['Skip','3rd','2nd','Lead'],
+  defaultNames:new Set(['SKIP','3RD','2ND','LEAD','-','TEAM']),
+};
+
+function distToZone(ft) {
+  if (ft == null) return null;
+  let best=CFG.zones[0], bd=Infinity;
+  for (const z of CFG.zones) { const d=Math.abs(z.d-ft); if(d<bd){bd=d;best=z;} }
+  return best.n;
+}
+function sweepVal(n) { return (CFG.sweeps.find(s=>s.n===n)||{v:0}).v; }
+
+// ════════════════════════════════════════════════
+// PLAYER STORE (persistent cross-game)
+// ════════════════════════════════════════════════
+const PS = {
+  KEY:'cd_watch_ps_v1', SEED_KEY:'cd_watch_ps_seeded_v1',
+  load(){ try{return JSON.parse(localStorage.getItem(this.KEY)||'{}')}catch{return{}} },
+  save(all){ try{localStorage.setItem(this.KEY,JSON.stringify(all))}catch{} },
+  get(name){ if(!name||name.length<2)return null; return this.load()[name.toUpperCase()]||null; },
+  append(name,bh,actualAdj,iceBase,game){
+    if(!name||name.length<2)return;
+    if(CFG.defaultNames.has(name.toUpperCase()))return;
+    const all=this.load(); const k=name.toUpperCase();
+    if(!all[k]) all[k]={name:k,shots:[],histOffset:0,histSigma:99,shotCount:0,gameCount:0};
+    all[k].shots.push({bh,actualAdj,iceBase,game,ts:new Date().toISOString()});
+    if(all[k].shots.length>200) all[k].shots=all[k].shots.slice(-200);
+    this._calc(all[k]); this.save(all);
+  },
+  _calc(p){
+    const v=p.shots.filter(s=>s.bh>2&&s.actualAdj!=null);
+    p.shotCount=v.length;
+    p.gameCount=new Set(v.map(s=>s.game||'x')).size;
+    if(v.length<2){p.histOffset=0;p.histSigma=99;return;}
+    const res=v.map(s=>s.actualAdj-(CFG.bhSlope*s.bh+CFG.bhInt)-(s.iceBase||0));
+    const mu=res.reduce((a,b)=>a+b,0)/res.length;
+    const va=res.map(r=>Math.pow(r-mu,2)).reduce((a,b)=>a+b,0)/res.length;
+    p.histOffset=mu; p.histSigma=Math.sqrt(va);
+  },
+  list(){ return Object.values(this.load()).filter(p=>!CFG.defaultNames.has(p.name)); },
+  seed(){
+    if(localStorage.getItem(this.SEED_KEY)) return;
+    const seeds={
+      GUSHU:{shots:[
+        {bh:4.09,actualAdj:17.0,iceBase:-0.211,game:'2024BF'},{bh:4.45,actualAdj:0.0,iceBase:-0.211,game:'2024BF'},
+        {bh:4.2,actualAdj:15.0,iceBase:-0.211,game:'2024BF'},{bh:3.94,actualAdj:20.0,iceBase:-0.211,game:'2024BF'},
+        {bh:4.0,actualAdj:21.5,iceBase:-0.211,game:'2024BF'},{bh:3.79,actualAdj:25.5,iceBase:1.541,game:'25d5'},
+        {bh:4.0,actualAdj:20.0,iceBase:1.541,game:'25d5'},{bh:4.04,actualAdj:20.0,iceBase:1.541,game:'25d5'},
+        {bh:4.16,actualAdj:16.5,iceBase:1.541,game:'25d5'},{bh:3.95,actualAdj:24.5,iceBase:1.541,game:'25d5'},
+        {bh:3.98,actualAdj:13.0,iceBase:1.541,game:'25d5'},{bh:3.89,actualAdj:26.5,iceBase:2.757,game:'25p1v2'},
+        {bh:4.0,actualAdj:20.0,iceBase:2.757,game:'25p1v2'},{bh:3.98,actualAdj:21.0,iceBase:2.757,game:'25p1v2'},
+        {bh:3.85,actualAdj:22.5,iceBase:2.757,game:'25p1v2'},{bh:3.92,actualAdj:22.5,iceBase:2.757,game:'25p1v2'},
+        {bh:4.38,actualAdj:12.5,iceBase:2.757,game:'25p1v2'},{bh:3.99,actualAdj:23.5,iceBase:1.604,game:'25semi'},
+        {bh:4.16,actualAdj:15.0,iceBase:1.604,game:'25semi'},{bh:4.04,actualAdj:18.5,iceBase:1.604,game:'25semi'},
+        {bh:4.01,actualAdj:22.5,iceBase:1.604,game:'25semi'},{bh:3.89,actualAdj:20.0,iceBase:1.604,game:'25semi'},
+        {bh:4.4,actualAdj:6.5,iceBase:1.604,game:'25semi'},{bh:4.02,actualAdj:20.0,iceBase:0.239,game:'25d14'},
+        {bh:4.03,actualAdj:16.5,iceBase:0.239,game:'25d14'},{bh:3.91,actualAdj:21.5,iceBase:0.239,game:'25d14'},
+        {bh:4.19,actualAdj:10.0,iceBase:0.239,game:'25d14'},{bh:4.17,actualAdj:17.0,iceBase:0.239,game:'25d14'},
+        {bh:4.07,actualAdj:21.5,iceBase:0.239,game:'25d14'},{bh:4.41,actualAdj:22.5,iceBase:0.239,game:'25d14'},
+        {bh:4.21,actualAdj:10.0,iceBase:0.239,game:'25d14'},{bh:3.89,actualAdj:22.5,iceBase:0.239,game:'25d14'},
+        {bh:4.08,actualAdj:16.5,iceBase:-0.368,game:'25d3'},{bh:4.06,actualAdj:20.0,iceBase:-0.368,game:'25d3'},
+        {bh:3.85,actualAdj:24.5,iceBase:-0.368,game:'25d3'},{bh:4.15,actualAdj:14.5,iceBase:-0.368,game:'25d3'},
+        {bh:3.97,actualAdj:22.5,iceBase:-0.368,game:'25d3'},
+      ]},
+      NICHO:{shots:[
+        {bh:4.08,actualAdj:18.5,iceBase:-0.211,game:'2024BF'},{bh:4.2,actualAdj:18.5,iceBase:-0.211,game:'2024BF'},
+        {bh:4.12,actualAdj:17.0,iceBase:-0.211,game:'2024BF'},{bh:4.2,actualAdj:6.5,iceBase:-0.211,game:'2024BF'},
+        {bh:4.41,actualAdj:5.0,iceBase:-0.211,game:'2024BF'},{bh:4.24,actualAdj:21.0,iceBase:-0.211,game:'2024BF'},
+        {bh:4.17,actualAdj:20.0,iceBase:1.541,game:'25d5'},{bh:4.29,actualAdj:14.2,iceBase:1.541,game:'25d5'},
+        {bh:4.18,actualAdj:23.5,iceBase:2.757,game:'25p1v2'},{bh:4.63,actualAdj:7.2,iceBase:2.757,game:'25p1v2'},
+        {bh:4.22,actualAdj:24.5,iceBase:2.757,game:'25p1v2'},{bh:4.6,actualAdj:20.0,iceBase:2.757,game:'25p1v2'},
+        {bh:4.37,actualAdj:17.2,iceBase:1.604,game:'25semi'},{bh:4.11,actualAdj:21.0,iceBase:1.604,game:'25semi'},
+        {bh:4.31,actualAdj:16.5,iceBase:1.604,game:'25semi'},{bh:4.41,actualAdj:11.5,iceBase:1.604,game:'25semi'},
+        {bh:3.9,actualAdj:21.0,iceBase:1.604,game:'25semi'},{bh:4.33,actualAdj:12.2,iceBase:1.604,game:'25semi'},
+        {bh:4.3,actualAdj:18.5,iceBase:0.239,game:'25d14'},{bh:4.34,actualAdj:11.5,iceBase:0.239,game:'25d14'},
+        {bh:4.25,actualAdj:17.0,iceBase:0.239,game:'25d14'},{bh:4.41,actualAdj:12.5,iceBase:0.239,game:'25d14'},
+        {bh:4.41,actualAdj:7.5,iceBase:0.239,game:'25d14'},{bh:4.21,actualAdj:15.0,iceBase:0.239,game:'25d14'},
+      ]},
+      BOTTC:{shots:[
+        {bh:3.98,actualAdj:19.5,iceBase:1.541,game:'25d5'},{bh:4.2,actualAdj:21.0,iceBase:1.541,game:'25d5'},
+        {bh:4.14,actualAdj:20.0,iceBase:1.541,game:'25d5'},{bh:4.28,actualAdj:15.0,iceBase:2.757,game:'25p1v2'},
+        {bh:4.43,actualAdj:6.5,iceBase:2.757,game:'25p1v2'},{bh:4.04,actualAdj:23.5,iceBase:2.757,game:'25p1v2'},
+        {bh:4.16,actualAdj:21.0,iceBase:2.757,game:'25p1v2'},{bh:4.24,actualAdj:14.5,iceBase:2.757,game:'25p1v2'},
+        {bh:4.26,actualAdj:18.5,iceBase:2.757,game:'25p1v2'},{bh:4.06,actualAdj:19.5,iceBase:2.757,game:'25p1v2'},
+        {bh:3.97,actualAdj:22.5,iceBase:2.757,game:'25p1v2'},{bh:3.97,actualAdj:21.5,iceBase:2.757,game:'25p1v2'},
+        {bh:4.2,actualAdj:23.5,iceBase:2.757,game:'25p1v2'},{bh:4.29,actualAdj:13.0,iceBase:1.604,game:'25semi'},
+        {bh:4.34,actualAdj:16.5,iceBase:1.604,game:'25semi'},{bh:4.1,actualAdj:18.5,iceBase:1.604,game:'25semi'},
+        {bh:4.14,actualAdj:17.0,iceBase:1.604,game:'25semi'},{bh:4.05,actualAdj:19.5,iceBase:1.604,game:'25semi'},
+        {bh:4.2,actualAdj:18.5,iceBase:1.604,game:'25semi'},{bh:4.22,actualAdj:17.0,iceBase:1.604,game:'25semi'},
+        {bh:4.05,actualAdj:17.0,iceBase:0.239,game:'25d14'},{bh:4.04,actualAdj:12.5,iceBase:0.239,game:'25d14'},
+        {bh:4.04,actualAdj:20.0,iceBase:0.239,game:'25d14'},{bh:4.08,actualAdj:12.5,iceBase:0.239,game:'25d14'},
+        {bh:4.32,actualAdj:2.5,iceBase:0.239,game:'25d14'},{bh:3.89,actualAdj:18.5,iceBase:0.239,game:'25d14'},
+        {bh:3.89,actualAdj:19.5,iceBase:0.239,game:'25d14'},
+      ]},
+      WALKE:{shots:[
+        {bh:3.98,actualAdj:21.5,iceBase:-0.211,game:'2024BF'},{bh:4.2,actualAdj:18.5,iceBase:-0.211,game:'2024BF'},
+        {bh:4.28,actualAdj:10.2,iceBase:-0.211,game:'2024BF'},{bh:4.17,actualAdj:16.5,iceBase:1.541,game:'25d5'},
+        {bh:4.31,actualAdj:14.5,iceBase:1.541,game:'25d5'},{bh:4.03,actualAdj:17.5,iceBase:1.541,game:'25d5'},
+        {bh:4.13,actualAdj:16.5,iceBase:1.541,game:'25d5'},{bh:3.4,actualAdj:24.5,iceBase:2.757,game:'25p1v2'},
+        {bh:3.83,actualAdj:16.5,iceBase:2.757,game:'25p1v2'},{bh:4.33,actualAdj:11.5,iceBase:2.757,game:'25p1v2'},
+        {bh:4.36,actualAdj:6.5,iceBase:1.604,game:'25semi'},{bh:3.91,actualAdj:18.5,iceBase:0.239,game:'25d14'},
+        {bh:4.25,actualAdj:20.0,iceBase:0.239,game:'25d14'},{bh:4.07,actualAdj:16.5,iceBase:0.239,game:'25d14'},
+        {bh:4.2,actualAdj:21.0,iceBase:0.239,game:'25d14'},{bh:4.2,actualAdj:16.5,iceBase:-0.368,game:'25d3'},
+        {bh:3.97,actualAdj:16.5,iceBase:-0.368,game:'25d3'},{bh:4.0,actualAdj:12.5,iceBase:-0.368,game:'25d3'},
+      ]},
+    };
+    const all=this.load();
+    for(const [name,data] of Object.entries(seeds)){
+      if(all[name]) continue;
+      all[name]={name,shots:data.shots,histOffset:0,histSigma:99,shotCount:0,gameCount:0};
+      this._calc(all[name]);
+    }
+    this.save(all);
+    localStorage.setItem(this.SEED_KEY,'1');
+  },
+};
+
+// ════════════════════════════════════════════════
+// SESSION
+// ════════════════════════════════════════════════
+class Session {
+  constructor(){
+    const s=this._load();
+    this.profiles   = s.profiles   || {Skip:'SKIP','3rd':'3RD','2nd':'2ND',Lead:'LEAD'};
+    this.history    = s.history    || [];
+    this.archives   = s.archives   || [];
+    this.manOff     = s.manOff     || {};
+    this.active     = 'Skip';   // null = team "-"
+    this.useBH      = true;
+    this.bh         = {iceBase:0};
+    this.hh         = {iceOff:0};
+    this.slots      = {}; // per-slot calibration
+    this._tag       = 'g'+Date.now();
+    this._ensureSample();
+    this.recalibrate();
+  }
+  _load(){ try{return JSON.parse(localStorage.getItem('cd_watch_v2')||'{}')}catch{return{}} }
+  save(){ try{localStorage.setItem('cd_watch_v2',JSON.stringify({
+    profiles:this.profiles, history:this.history, archives:this.archives, manOff:this.manOff
+  }))}catch{} }
+
+  _ensureSample(){
+    if(this.archives.find(a=>a.id===1739720000000)) return;
+    this.archives.push({
+      id:1739720000000, name:"Sample: 2025 Brier Semifinal", date:"2025-03-08",
+      profiles:{Skip:'GUSHU','3rd':'NICHO','2nd':'BOTTC',Lead:'WALKE'},
+      history:[
+        {id:1, player:'3rd',  bh:4.31,hh:14.84,useBH:true,actual:17.5,sweep:1.0,  zone:'T 8', sweepLabel:'L'},
+        {id:2, player:'Skip', bh:4.04,hh:14.81,useBH:true,actual:19.5,sweep:1.0,  zone:'T 4', sweepLabel:'L'},
+        {id:3, player:null,   bh:4.04,hh:14.27,useBH:true,actual:21.0,sweep:0,    zone:'TEE', sweepLabel:'N/A'},
+        {id:4, player:null,   bh:4.04,hh:14.47,useBH:true,actual:17.5,sweep:0,    zone:'T 8', sweepLabel:'N/A'},
+        {id:5, player:null,   bh:4.29,hh:14.20,useBH:true,actual:19.5,sweep:2.5,  zone:'T 4', sweepLabel:'M'},
+        {id:6, player:'2nd',  bh:4.34,hh:14.94,useBH:true,actual:17.5,sweep:1.0,  zone:'T 8', sweepLabel:'L'},
+        {id:7, player:null,   bh:4.39,hh:15.18,useBH:true,actual:15.5,sweep:2.5,  zone:'T 12',sweepLabel:'M'},
+        {id:8, player:'3rd',  bh:4.11,hh:13.87,useBH:true,actual:21.0,sweep:0,    zone:'TEE', sweepLabel:'N/A'},
+        {id:9, player:'Skip', bh:4.16,hh:14.80,useBH:true,actual:17.5,sweep:2.5,  zone:'T 8', sweepLabel:'M'},
+        {id:10,player:null,   bh:4.29,hh:14.48,useBH:true,actual:19.5,sweep:1.0,  zone:'T 4', sweepLabel:'L'},
+        {id:11,player:'2nd',  bh:4.29,hh:15.41,useBH:true,actual:15.5,sweep:2.5,  zone:'T 12',sweepLabel:'M'},
+        {id:12,player:null,   bh:4.27,hh:15.50,useBH:true,actual:17.5,sweep:5.3,  zone:'T 8', sweepLabel:'H'},
+        {id:13,player:'3rd',  bh:4.37,hh:14.08,useBH:true,actual:22.5,sweep:5.3,  zone:'B 8', sweepLabel:'H'},
+        {id:14,player:null,   bh:4.08,hh:13.97,useBH:true,actual:26.5,sweep:2.5,  zone:'B 12',sweepLabel:'M'},
+        {id:15,player:'Skip', bh:3.99,hh:13.94,useBH:true,actual:24.5,sweep:1.0,  zone:'B 8', sweepLabel:'L'},
+        {id:16,player:null,   bh:3.99,hh:14.43,useBH:true,actual:19.5,sweep:0,    zone:'T 4', sweepLabel:'N/A'},
+        {id:17,player:null,   bh:4.25,hh:14.17,useBH:true,actual:22.5,sweep:0,    zone:'B 8', sweepLabel:'N/A'},
+        {id:18,player:null,   bh:4.36,hh:14.34,useBH:true,actual:19.5,sweep:0,    zone:'T 4', sweepLabel:'N/A'},
+        {id:19,player:null,   bh:4.36,hh:13.94,useBH:true,actual:22.5,sweep:0,    zone:'B 8', sweepLabel:'N/A'},
+      ]
+    });
+    this.save();
+  }
+
+  predict(type, t){
+    if(type==='BH'){
+      if(t<CFG.minBH||t>CFG.maxBH) return null;
+      let off=this.bh.iceBase;
+      if(this.active){
+        const man=this.manOff[this.active]||0;
+        if(man!==0) off+=man*CFG.bhSlope;
+        else off+=(this.slots[this.active]?.effectiveOff||0);
+      }
+      const d=CFG.bhSlope*t+CFG.bhInt+off;
+      return(d>42||d<0)?null:d;
+    }
+    if(type==='HH'){
+      if(t<CFG.minHH||t>CFG.maxHH) return null;
+      const d=CFG.hhSlope*t+CFG.hhInt+this.hh.iceOff;
+      return d>42?null:d;
+    }
+    return null;
+  }
+
+  recalibrate(){
+    const bhV=this.history.filter(s=>s.useBH&&s.actual!=null);
+    if(bhV.length){
+      const errs=bhV.map(s=>(s.actual-(s.sweep||0))-(CFG.bhSlope*s.bh+CFG.bhInt));
+      this.bh.iceBase=errs.reduce((a,b)=>a+b,0)/errs.length;
+      CFG.slots.forEach(id=>{
+        const shots=bhV.filter(s=>s.player===id);
+        if(!shots.length){this.slots[id]={effectiveOff:0,conf:0,n:0};return;}
+        const pErrs=shots.map(s=>(s.actual-(s.sweep||0))-(CFG.bhSlope*s.bh+CFG.bhInt)-this.bh.iceBase);
+        const off=pErrs.reduce((a,b)=>a+b,0)/pErrs.length;
+        this.slots[id]={effectiveOff:off,conf:Math.min(1,shots.length/15),n:shots.length};
+      });
+    }
+    const hhV=this.history.filter(s=>s.actual!=null);
+    if(hhV.length){
+      const errs=hhV.map(s=>s.actual-(CFG.hhSlope*s.hh+CFG.hhInt));
+      this.hh.iceOff=errs.reduce((a,b)=>a+b,0)/errs.length;
+    }
+  }
+
+  addShot(bh,hh,zone,sweepLabel){
+    const zObj=CFG.zones.find(z=>z.n===zone);
+    const sv=sweepVal(sweepLabel);
+    const shot={
+      id:Date.now(), player:this.active,
+      bh:this.useBH?bh:null, hh, useBH:this.useBH,
+      actual:zObj?zObj.d:null, sweep:sv, zone, sweepLabel,
+      timestamp:new Date().toISOString()
+    };
+    this.history.unshift(shot);
+    if(this.history.length>200) this.history.pop();
+    // persist to PlayerStore if named non-default
+    if(this.useBH&&this.active){
+      const name=this.profiles[this.active];
+      if(name&&!CFG.defaultNames.has(name.toUpperCase())&&bh>2&&zObj){
+        PS.append(name, bh, zObj.d-sv, this.bh.iceBase, this._tag);
+      }
+    }
+    this.recalibrate(); this.save();
+  }
+
+  iceSpeeds(slotId){
+    let off=this.bh.iceBase;
+    if(slotId){
+      const man=this.manOff[slotId]||0;
+      if(man!==0) off+=man*CFG.bhSlope;
+      else off+=(this.slots[slotId]?.effectiveOff||0);
+    }
+    const hOff=this.hh.iceOff;
+    return CFG.zones.map(z=>({
+      zone:z.n,
+      bh:((z.d-CFG.bhInt-off)/CFG.bhSlope),
+      hh:((z.d-CFG.hhInt-hOff)/CFG.hhSlope),
+    }));
+  }
+
+  newGame(){
+    if(this.history.length)
+      this.archives.unshift({id:Date.now(),name:`Game ${this.archives.length+1}`,date:new Date().toLocaleDateString(),profiles:{...this.profiles},history:[...this.history]});
+    this.history=[]; this.bh={iceBase:0}; this.hh={iceOff:0};
+    this.slots={}; this._tag='g'+Date.now(); this.save();
+  }
+
+  loadArchive(id){
+    const g=this.archives.find(a=>a.id===id); if(!g) return;
+    this.history=[...g.history];
+    if(g.profiles) this.profiles={...g.profiles};
+    this.recalibrate(); this.save();
+  }
+
+  activeLabel(){ return this.active ? (this.profiles[this.active]||this.active) : '—'; }
+}
+
+// ════════════════════════════════════════════════
+// STOPWATCH
+// ════════════════════════════════════════════════
+class SW {
+  constructor(){ this.state='IDLE'; this.t0=0; this.t1=0; this.bh=0; this.hh=0; this.raf=null; this.onTick=null; this.onFinish=null; }
+  reset(){ cancelAnimationFrame(this.raf); this.raf=null; this.state='IDLE'; this.bh=0; this.hh=0; if(this.onTick)this.onTick(this); }
+  action(){
+    const now=Date.now();
+    if(this.state==='IDLE'||this.state==='DONE'){
+      // fresh start — clear previous times
+      this.t0=this.t1=now; this.bh=0; this.hh=0;
+      this.state=sess.useBH?'RUN':'INT'; this._loop();
+    } else if(this.state==='RUN'){
+      this.bh=(now-this.t0)/1000; this.t1=now; this.state='INT';
+    } else if(this.state==='INT'){
+      this.hh=(now-this.t1)/1000; this._finish();
+    }
+  }
+  _loop(){
+    const t=()=>{
+      const now=Date.now();
+      // Auto-hog: BH exceeded 5.5s → skip to HH
+      if(this.state==='RUN'&&(now-this.t0)/1000>=CFG.autoHog){
+        this.bh=0; this.t1=now; this.state='INT';
+      }
+      // 19s HH timeout → auto-finish
+      if(this.state==='INT'&&(now-this.t1)/1000>=19){
+        this.hh=(now-this.t1)/1000; this._finish(); return;
+      }
+      if(this.onTick) this.onTick(this);
+      if(this.state==='RUN'||this.state==='INT') this.raf=requestAnimationFrame(t);
+    };
+    this.raf=requestAnimationFrame(t);
+  }
+  _finish(){ cancelAnimationFrame(this.raf); this.state='DONE'; if(this.onFinish)this.onFinish(this); }
+  live(){ const n=Date.now(); return { bh:this.state==='RUN'?(n-this.t0)/1000:this.bh, hh:this.state==='INT'?(n-this.t1)/1000:this.hh }; }
+}
+
+// ════════════════════════════════════════════════
+// APP
+// ════════════════════════════════════════════════
+PS.seed();
+const sess = new Session();
+const sw   = new SW();
+let selZ=null, selS=null, nerd=true, iceSlotIdx=0, pendBH=0, pendHH=0;
+
+const App = {
+
+  // ── DISPLAY ──────────────────────────────────
+  draw(s){
+    const {bh,hh}=s.live();
+    const $bh=document.getElementById('val-bh');
+    const $hh=document.getElementById('val-hh');
+    const $eBH=document.getElementById('est-bh');
+    const $eHH=document.getElementById('est-hh');
+    const $lbl=document.getElementById('start-lbl');
+    const halfBH=document.getElementById('half-bh');
+
+    // BH half
+    halfBH.classList.toggle('off-col',!sess.useBH);
+    if(s.state==='IDLE'||s.state==='DONE'){
+      if(bh>0){ $bh.textContent=bh.toFixed(2); $bh.className='t-val';
+        const p=sess.predict('BH',bh); $eBH.textContent=p!=null?distToZone(p):''; $eBH.className='t-est';
+      } else { $bh.textContent='--'; $bh.className='t-val dim'; $eBH.textContent=''; $eBH.className='t-est dim'; }
+    } else if(s.state==='RUN'){
+      $bh.textContent=bh>0?bh.toFixed(2):'--'; $bh.className='t-val'; $eBH.textContent=''; $eBH.className='t-est dim';
+    } else { // INT
+      $bh.textContent=bh.toFixed(2); $bh.className='t-val';
+      const p=sess.predict('BH',bh); $eBH.textContent=p!=null?distToZone(p):''; $eBH.className='t-est';
+    }
+
+    // HH half
+    if(hh>0){
+      $hh.textContent=hh.toFixed(2); $hh.className='t-val';
+      if(s.state==='DONE'){ const p=sess.predict('HH',hh); $eHH.textContent=p!=null?distToZone(p):''; $eHH.className='t-est'; }
+      else { $eHH.textContent=''; $eHH.className='t-est dim'; }
+    } else { $hh.textContent='--'; $hh.className='t-val dim'; $eHH.textContent=''; $eHH.className='t-est dim'; }
+
+    // Start label
+    if(s.state==='RUN') $lbl.textContent='HOG 1';
+    else if(s.state==='INT') $lbl.textContent='HOG 2';
+    else $lbl.textContent='START';
+  },
+
+  refreshProfiles(){
+    CFG.slots.forEach(id=>{
+      const btn=document.getElementById('pbtn-'+id);
+      const lbl=document.getElementById('plbl-'+id);
+      const dot=document.getElementById('pdot-'+id);
+      if(!btn) return;
+      btn.classList.toggle('active', sess.active===id);
+      lbl.textContent=(sess.profiles[id]||id).slice(0,5).toUpperCase();
+      const n=sess.slots[id]?.n||0;
+      btn.classList.toggle('calibrated',n>=3);
+      if(dot){ dot.style.opacity=n>=3?'0.9':'0.3'; }
+    });
+  },
+
+  drawGrid(){
+    const cover=document.getElementById('start-cover');
+    const inTray=cover.classList.contains('peek');
+    // show predicted zone only when tray is open and user hasn't picked yet
+    let predZ=null;
+    if(inTray&&selZ===null){
+      const live=sw.live();
+      const bh=live.bh,hh=live.hh;
+      const ft=bh>0?sess.predict('BH',bh):hh>0?sess.predict('HH',hh):null;
+      if(ft!=null) predZ=distToZone(ft);
+    }
+    document.querySelectorAll('.gb[data-z]').forEach(el=>{
+      el.classList.toggle('sel', selZ ? el.dataset.z===selZ : el.dataset.z===predZ);
+    });
+    document.querySelectorAll('.gb[data-s]').forEach(el=>{
+      el.classList.toggle('sel', el.dataset.s===selS);
+      el.classList.toggle('off', !sess.useBH);
+    });
+  },
+
+  // ── MAIN TAP (start area) ─────────────────────
+  tapStart(){
+    const cover=document.getElementById('start-cover');
+    if(cover.classList.contains('peek')){
+      // Peek strip tapped → restart clock
+      this._hideTray(); sw.reset(); sw.action(); return;
+    }
+    sw.action();
+  },
+
+  _revealTray(){
+    selZ=null; selS=null;
+    document.getElementById('start-cover').classList.add('peek');
+    this.drawGrid();
+  },
+  _hideTray(){
+    document.getElementById('start-cover').classList.remove('peek');
+    selZ=null; selS=null; this.drawGrid();
+  },
+
+  // ── GRID ─────────────────────────────────────
+  tapZone(z){ selZ=z; this.drawGrid(); if(selS!==null||!sess.useBH) this._store(); },
+  tapSweep(s){ selS=s; this.drawGrid(); if(selZ!==null) this._store(); },
+  _store(){
+    if(!selZ) return;
+    if(!selS&&sess.useBH) return;
+    sess.addShot(pendBH, pendHH, selZ, selS||'N/A');
+    setTimeout(()=>{ this._hideTray(); sw.reset(); this.draw(sw); this.refreshProfiles(); }, 80);
+  },
+  doDiscard(){
+    this._hideTray(); sw.reset(); this.draw(sw);
+  },
+
+  // ── PROFILE TOGGLE (tap again to deselect → team) ─
+  setProfile(id){
+    sess.active = sess.active===id ? null : id;
+    this.refreshProfiles();
+  },
+
+  toggleBH(){
+    if(sw.state!=='INT'&&sw.state!=='DONE') return;
+    sess.useBH=!sess.useBH;
+    if(!sess.useBH){ pendBH=0; }
+    this.draw(sw); this.drawGrid();
+  },
+
+  // ── MENU ─────────────────────────────────────
+  openMenu(){ document.getElementById('menu-overlay').classList.add('open'); this.openSub('sc-main'); },
+  closeMenu(){ document.getElementById('menu-overlay').classList.remove('open'); },
+  openSub(id){
+    document.querySelectorAll('.sub').forEach(s=>s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    if(id==='sc-ice') this._renderIce();
+    if(id==='sc-log') this._renderLog();
+    if(id==='sc-profiles') this._renderProfiles();
+    if(id==='sc-games') this._renderGames();
+  },
+  confirmNew(){ document.getElementById('ov-confirm').classList.add('show'); },
+  closeOv(id){ document.getElementById(id).classList.remove('show'); },
+  doNewGame(){ sess.newGame(); this.closeOv('ov-confirm'); this.closeMenu(); this.draw(sw); this.refreshProfiles(); },
+
+  toggleMode(){
+    nerd=!nerd;
+    document.querySelectorAll('.nerd-item').forEach(el=>{ el.style.display=nerd?'':'none'; });
+    const bar=document.getElementById('profile-bar');
+    bar.classList.toggle('simple-hidden',!nerd);
+    // update icon
+    document.getElementById('mode-svg').innerHTML=nerd
+      ?`<rect x="2" y="2" width="60" height="60" rx="15" fill="#B0B0B0"/>
+         <g fill="none" stroke="#505050" stroke-width="5"><circle cx="22" cy="28" r="10"/><circle cx="42" cy="28" r="10"/></g>
+         <g fill="#505050"><circle cx="22" cy="28" r="4"/><circle cx="42" cy="28" r="4"/></g>
+         <path d="M22 46 Q32 54 42 46" fill="none" stroke="#505050" stroke-width="3" stroke-linecap="round"/>
+         <path d="M32 58 L24 54 V62 Z M32 58 L40 54 V62 Z" fill="#505050"/>`
+      :`<rect x="2" y="2" width="60" height="60" rx="15" fill="#B0B0B0"/>
+        <path d="M10 24 H54 L53 35 Q53 43 44 43 H35 L32 33 L29 43 H20 Q11 43 11 35 Z" fill="#505050"/>
+        <path d="M30 52 Q38 54 44 48" fill="none" stroke="#505050" stroke-width="3" stroke-linecap="round"/>`;
+  },
+
+  // ── ICE SPEEDS ───────────────────────────────
+  _iceSlots:['Skip','3rd','2nd','Lead'],
+  cycleIce(){
+    iceSlotIdx=(iceSlotIdx+1)%this._iceSlots.length;
+    this._renderIce();
+  },
+  _renderIce(){
+    const id=this._iceSlots[iceSlotIdx];
+    const name=sess.profiles[id]||id;
+    document.getElementById('ice-player').textContent=name+' ›';
+    const rows=sess.iceSpeeds(id);
+    document.getElementById('ice-body').innerHTML=rows.map(r=>
+      `<div class="ice-row ${r.zone==='TEE'?'tee':''}">
+        <div class="ice-zone">${r.zone}</div>
+        <div class="ice-val">${r.bh>0?r.bh.toFixed(2):'--'}</div>
+        <div class="ice-val">${r.hh>0?r.hh.toFixed(2):'--'}</div>
+      </div>`
+    ).join('');
+  },
+
+  // ── SHOT LOG ─────────────────────────────────
+  _renderLog(){
+    const body=document.getElementById('log-body');
+    if(!sess.history.length){ body.innerHTML='<div style="padding:14px;font-size:10px;color:#222;text-align:center;">No shots yet</div>'; return; }
+    body.innerHTML=sess.history.slice(0,60).map(s=>{
+      const name=s.player?(sess.profiles[s.player]||s.player):'—';
+      return `<div class="log-row">
+        <div style="color:#333;font-size:8px;">${name}</div>
+        <div style="font-variant-numeric:tabular-nums;">${s.bh!=null?s.bh.toFixed(2):'--'}</div>
+        <div style="font-variant-numeric:tabular-nums;">${s.hh!=null?s.hh.toFixed(2):'--'}</div>
+        <div class="log-zone">${s.zone||'?'}</div>
+      </div>`;
+    }).join('');
+  },
+
+  // ── PROFILES ─────────────────────────────────
+  _renderProfiles(){
+    // Only show non-default named profiles from PlayerStore
+    const all=PS.list();
+    const body=document.getElementById('profiles-body');
+    if(!all.length){ body.innerHTML='<div style="padding:14px;font-size:10px;color:#222;text-align:center;">No named profiles yet.<br><span style="font-size:9px;color:#1a1a1a;">Name a slot to start accumulating.</span></div>'; return; }
+    body.innerHTML=all.map(p=>{
+      const offS=p.histOffset?((p.histOffset/CFG.bhSlope)*-1):0;
+      const offStr=(offS>=0?'+':'')+offS.toFixed(2)+'s';
+      return `<div class="prof-row" onclick="App.openPM('${p.name}')">
+        <div class="prof-name">${p.name}</div>
+        <div class="prof-meta">${p.shotCount} shots · ${p.gameCount} games</div>
+        <div class="prof-off">${offStr}</div>
+      </div>`;
+    }).join('');
+  },
+
+  // Profile modal (slot based, for renaming/override)
+  openPM(slotOrName){
+    // detect if slot id or player name
+    const isSlot=CFG.slots.includes(slotOrName);
+    const slotId=isSlot?slotOrName:CFG.slots.find(s=>sess.profiles[s]===slotOrName)||null;
+    const name=isSlot?(sess.profiles[slotOrName]||slotOrName):slotOrName;
+    const slot=slotId?sess.slots[slotId]||{}:{};
+    const man=slotId?sess.manOff[slotId]||0:0;
+    document.getElementById('pm-title').textContent=name+' · Profile';
+    document.getElementById('pm-body').innerHTML=`
+      <div class="pm-row"><span class="pm-lbl">In-game shots</span><span class="pm-val">${slot.n||0}</span></div>
+      <div class="pm-row"><span class="pm-lbl">Auto offset</span><span class="pm-val">${slot.effectiveOff?((slot.effectiveOff/CFG.bhSlope*-1).toFixed(2)+'s'):'—'}</span></div>
+      ${slotId?`
+      <div class="pm-section">Rename slot</div>
+      <input class="pm-input" id="pm-inp-name" maxlength="5" value="${name}">
+      <div class="pm-btn" onclick="App._saveName('${slotId}')">Save Name</div>
+      <div class="pm-section">Manual offset (seconds)</div>
+      <input class="pm-input" id="pm-inp-off" type="number" step="0.01" value="${man.toFixed(2)}">
+      <div class="pm-btn" onclick="App._saveOff('${slotId}')">Set Override</div>
+      `:''}
+    `;
+    document.getElementById('pm-modal').classList.add('show');
+  },
+  closePM(){
+    document.getElementById('pm-modal').classList.remove('show');
+    sess.recalibrate(); this.refreshProfiles(); this.draw(sw);
+  },
+  _saveName(id){
+    const v=document.getElementById('pm-inp-name')?.value.trim();
+    if(v){ sess.profiles[id]=v.slice(0,5).toUpperCase(); sess.save(); this.refreshProfiles(); }
+  },
+  _saveOff(id){
+    const v=parseFloat(document.getElementById('pm-inp-off')?.value||'0');
+    sess.manOff[id]=isNaN(v)?0:parseFloat(v.toFixed(2)); sess.save();
+  },
+
+  // Long-press profile btn
+  _initLongPress(){
+    CFG.slots.forEach(id=>{
+      const btn=document.getElementById('pbtn-'+id); if(!btn) return;
+      let t=null;
+      btn.addEventListener('touchstart',()=>{ t=setTimeout(()=>this.openPM(id),500); },{passive:true});
+      btn.addEventListener('touchend',()=>clearTimeout(t),{passive:true});
+      btn.addEventListener('touchmove',()=>clearTimeout(t),{passive:true});
+    });
+  },
+
+  // ── LOAD GAME ────────────────────────────────
+  _renderGames(){
+    const body=document.getElementById('games-body');
+    if(!sess.archives.length){ body.innerHTML='<div style="padding:14px;font-size:10px;color:#222;text-align:center;">No saved games</div>'; return; }
+    body.innerHTML=sess.archives.map(a=>
+      `<div class="game-row" onclick="App._loadGame(${a.id})">
+        <div class="game-name">${a.name}</div>
+        <div class="game-date">${a.date}</div>
+        <div class="game-shots">${a.history?.length||0} shots</div>
+      </div>`
+    ).join('');
+  },
+  _loadGame(id){
+    sess.loadArchive(id);
+    this.closeMenu(); sw.reset(); this.draw(sw); this.refreshProfiles();
+  },
+
+  // ── EXPORT ───────────────────────────────────
+  exportCSV(){
+    let csv='Player,BH,UseBH,HH,Zone,Sweep\n';
+    sess.history.forEach(s=>{
+      const name=s.player?(sess.profiles[s.player]||s.player):'—';
+      csv+=`${name},${s.bh!=null?s.bh.toFixed(2):''},${s.useBH?1:0},${s.hh!=null?s.hh.toFixed(2):''},${s.zone||''},${s.sweepLabel||''}\n`;
+    });
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+    a.download='clock-dilla.csv'; a.click();
+    this.closeMenu();
+  },
+
+  // ── SWIPE GESTURE ────────────────────────────
+  _initSwipe(){
+    let x0=0;
+    document.getElementById('watch').addEventListener('touchstart',e=>{x0=e.touches[0].clientX;},{passive:true});
+    document.getElementById('watch').addEventListener('touchend',e=>{
+      const dx=e.changedTouches[0].clientX-x0;
+      const m=document.getElementById('menu-overlay');
+      if(dx<-40&&!m.classList.contains('open')) this.openMenu();
+      if(dx>40&&m.classList.contains('open')) this.closeMenu();
+    },{passive:true});
+  },
+
+  // ── BOOT ─────────────────────────────────────
+  init(){
+    sw.onTick = s => this.draw(s);
+    sw.onFinish = s => {
+      pendBH=s.bh; pendHH=s.hh;
+      // Validate times — if unrealistic, keep START up + times visible, no tray
+      const bhOk = !sess.useBH || (s.bh>=CFG.minBH && s.bh<=CFG.maxBH);
+      const hhOk = s.hh>=CFG.minHH && s.hh<=CFG.maxHH;
+      if(!bhOk||!hhOk){
+        // Leave sw in DONE state so times stay on display — just don't reveal tray
+        this.draw(s); return;
+      }
+      this.draw(s); this._revealTray();
+    };
+    this._initSwipe();
+    this._initLongPress();
+    this.refreshProfiles(); this.draw(sw);
+  }
+};
+
+App.init();
+</script>
+</body>
+</html>
