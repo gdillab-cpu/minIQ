@@ -1204,6 +1204,7 @@ const App = {
     document.getElementById('watch').addEventListener('touchstart', e=>{
       isTouchDevice=true;
       swipeX0=e.touches[0].clientX;
+      swipeY0=e.touches[0].clientY;
       swipeActive=true;
       touchMoved=false;
 
@@ -1234,9 +1235,13 @@ const App = {
       // All others: just record target, fire on touchend
     }, {passive:false});
 
+    let swipeY0=0;
+
     document.getElementById('watch').addEventListener('touchmove', e=>{
-      touchMoved=true;
-      if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer=null; touchTarget=null; }
+      const dx=Math.abs(e.touches[0].clientX-swipeX0);
+      const dy=Math.abs(e.touches[0].clientY-swipeY0);
+      if(dx>8||dy>8) touchMoved=true;
+      if(longPressTimer&&(dx>8||dy>8)){ clearTimeout(longPressTimer); longPressTimer=null; touchTarget=null; }
     }, {passive:true});
 
     document.getElementById('watch').addEventListener('touchend', e=>{
