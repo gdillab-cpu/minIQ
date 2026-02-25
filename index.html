@@ -70,7 +70,7 @@ body {
 .timer-half.left  .t-est { left: 5px; }
 .timer-half.right .t-est { right: 5px; }
 .t-est.dim { color: #181818; }
-.timer-half.off-col { opacity: 0.12; pointer-events: none; }
+.timer-half.off-col { opacity: 0.12; }
 
 /* ─── PROFILE BAR — 30px (hidden in simple mode) ─── */
 .profile-bar {
@@ -1197,52 +1197,73 @@ const App = {
       }
     };
 
-    // TOUCH — instant fire on touchstart, block synthetic click
+    // TOUCH — start button fires instantly on touchstart; all other actions fire on touchend
+    // This lets swipe gestures complete without accidentally triggering buttons.
+    let touchTarget=null, touchMoved=false;
+
     document.getElementById('watch').addEventListener('touchstart', e=>{
       isTouchDevice=true;
       swipeX0=e.touches[0].clientX;
       swipeActive=true;
+      touchMoved=false;
 
       const el=e.target.closest('[data-action]');
-      if(!el) return;
+      if(!el) { touchTarget=null; return; }
 
+      touchTarget=el;
       const action=el.dataset.action;
 
-      // Profile buttons: start long-press timer, fire tap on touchend
+      // START fires immediately on touch contact
+      if(action==='start'){
+        e.preventDefault();
+        handle(action, el);
+        touchTarget=null;
+        return;
+      }
+
+      // Profile buttons: start long-press timer
       if(action==='profile'){
         longPressTimer=setTimeout(()=>{
           longPressTimer=null;
-          e.preventDefault();
           this.openPM(el.dataset.id);
+          touchTarget=null;
         }, 500);
-        return; // don't fire action yet — wait for touchend
+        return;
       }
 
-      e.preventDefault();
-      handle(action, el);
+      // All others: just record target, fire on touchend
     }, {passive:false});
 
-    // Profile tap on touchend (only if long-press didn't fire)
-    document.getElementById('watch').addEventListener('touchend', e=>{
-      if(longPressTimer){
-        clearTimeout(longPressTimer);
-        const el=e.target.closest('[data-action="profile"]');
-        if(el){ e.preventDefault(); handle('profile', el); }
-        longPressTimer=null;
-      }
-
-      // Swipe detection
-      if(!swipeActive) return;
-      swipeActive=false;
-      const dx=e.changedTouches[0].clientX-swipeX0;
-      const m=document.getElementById('menu-overlay');
-      if(dx<-40 && !m.classList.contains('open')) this.openMenu();
-      if(dx>40  &&  m.classList.contains('open')) this.closeMenu();
-    }, {passive:false});
-
-    document.getElementById('watch').addEventListener('touchmove', ()=>{
-      if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer=null; }
+    document.getElementById('watch').addEventListener('touchmove', e=>{
+      touchMoved=true;
+      if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer=null; touchTarget=null; }
     }, {passive:true});
+
+    document.getElementById('watch').addEventListener('touchend', e=>{
+      // Swipe detection
+      if(swipeActive){
+        swipeActive=false;
+        const dx=e.changedTouches[0].clientX-swipeX0;
+        const m=document.getElementById('menu-overlay');
+        if(dx<-40 && !m.classList.contains('open')){ this.openMenu(); touchTarget=null; longPressTimer&&clearTimeout(longPressTimer); return; }
+        if(dx>40  &&  m.classList.contains('open')){ this.closeMenu(); touchTarget=null; longPressTimer&&clearTimeout(longPressTimer); return; }
+      }
+
+      // Profile tap (long-press didn't fire)
+      if(longPressTimer){
+        clearTimeout(longPressTimer); longPressTimer=null;
+        const el=e.target.closest('[data-action="profile"]');
+        if(el && !touchMoved){ e.preventDefault(); handle('profile', el); }
+        touchTarget=null; return;
+      }
+
+      // All other actions fire here on touchend (only if finger didn't move)
+      if(touchTarget && !touchMoved){
+        e.preventDefault();
+        handle(touchTarget.dataset.action, touchTarget);
+      }
+      touchTarget=null;
+    }, {passive:false});
 
     // DESKTOP — mousedown for instant response (suppressed on touch)
     document.getElementById('watch').addEventListener('mousedown', e=>{
