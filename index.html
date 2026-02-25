@@ -61,12 +61,14 @@ body {
 .t-val.dim      { color: #1e1e1e; }
 .t-val.disabled { color: #141414; }
 .t-est {
-  position: absolute; bottom: 4px;
-  font-size: 10px; font-weight: 700; line-height: 1;
-  color: #777; letter-spacing: 0.3px; transition: color 0.15s;
+  position: absolute; bottom: 3px;
+  font-size: 14px; font-weight: 800; line-height: 1;
+  color: #bbb; letter-spacing: -0.5px;
+  font-stretch: condensed;
+  white-space: nowrap;
 }
-.timer-half.left  .t-est { left: 7px; }
-.timer-half.right .t-est { right: 7px; }
+.timer-half.left  .t-est { left: 5px; }
+.timer-half.right .t-est { right: 5px; }
 .t-est.dim { color: #181818; }
 .timer-half.off-col { opacity: 0.12; pointer-events: none; }
 
@@ -100,7 +102,8 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 20%;
   grid-template-rows: repeat(4, 1fr);
-  gap: 2px; padding: 3px; background: #000;
+  gap: 2px; padding: 3px 3px 31px 3px; /* 31px bottom = 28px peek + 3px gap */
+  background: #000;
 }
 .gb {
   border-radius: 4px;
@@ -251,7 +254,7 @@ body {
       <div class="t-val dim" id="val-bh">--</div>
       <div class="t-est dim" id="est-bh"></div>
     </div>
-    <div class="timer-half right" id="half-hh">
+    <div class="timer-half right" id="half-hh" onclick="App.toggleHH()">
       <div class="t-val dim" id="val-hh">--</div>
       <div class="t-est dim" id="est-hh"></div>
     </div>
@@ -372,7 +375,7 @@ body {
 // ════════════════════════════════════════════════
 const CFG = {
   bhSlope:-22.7, bhInt:109.9, hhSlope:-4.9, hhInt:90.6,
-  minBH:2.0, maxBH:6.0, autoHog:5.5, minHH:7.0, maxHH:22.0,
+  minBH:2.0, maxBH:6.0, autoHog:5.5, minHH:7.0, maxHH:22.0, timeout:19.0,
   zones:[
     {n:"High",d:2.5},{n:"Mid",d:7.5},{n:"Tight",d:12.5},
     {n:"T 12",d:15.5},{n:"T 8",d:17.5},{n:"T 4",d:19.5},
@@ -509,7 +512,6 @@ class Session {
     this.archives   = s.archives   || [];
     this.manOff     = s.manOff     || {};
     this.active     = 'Skip';   // null = team "-"
-    this.useBH      = true;
     this.bh         = {iceBase:0};
     this.hh         = {iceOff:0};
     this.slots      = {}; // per-slot calibration
@@ -592,19 +594,19 @@ class Session {
     }
   }
 
-  addShot(bh,hh,zone,sweepLabel){
+  addShot(bh,hh,zone,sweepLabel,useBH,useHH){
     const zObj=CFG.zones.find(z=>z.n===zone);
     const sv=sweepVal(sweepLabel);
     const shot={
       id:Date.now(), player:this.active,
-      bh:this.useBH?bh:null, hh, useBH:this.useBH,
+      bh:useBH?bh:null, hh, useBH, useHH:useHH!==false,
       actual:zObj?zObj.d:null, sweep:sv, zone, sweepLabel,
       timestamp:new Date().toISOString()
     };
     this.history.unshift(shot);
     if(this.history.length>200) this.history.pop();
     // persist to PlayerStore if named non-default
-    if(this.useBH&&this.active){
+    if(useBH&&this.active){
       const name=this.profiles[this.active];
       if(name&&!CFG.defaultNames.has(name.toUpperCase())&&bh>2&&zObj){
         PS.append(name, bh, zObj.d-sv, this.bh.iceBase, this._tag);
@@ -646,41 +648,57 @@ class Session {
 }
 
 // ════════════════════════════════════════════════
-// STOPWATCH
+// STOPWATCH  (mirrors full-size version logic)
 // ════════════════════════════════════════════════
 class SW {
-  constructor(){ this.state='IDLE'; this.t0=0; this.t1=0; this.bh=0; this.hh=0; this.raf=null; this.onTick=null; this.onFinish=null; }
-  reset(){ cancelAnimationFrame(this.raf); this.raf=null; this.state='IDLE'; this.bh=0; this.hh=0; if(this.onTick)this.onTick(this); }
+  constructor(){
+    this.state='IDLE'; this.t0=0; this.t1=0;
+    this.splitBH=0; this.splitHH=0;
+    this.enableBH=true; this.enableHH=true;
+    this.raf=null; this.onTick=null; this.onFinish=null;
+  }
+  reset(){
+    cancelAnimationFrame(this.raf); this.raf=null;
+    this.state='IDLE'; this.splitBH=0; this.splitHH=0;
+    if(this.onTick) this.onTick({liveBH:null,liveHH:null,...this});
+  }
   action(){
     const now=Date.now();
     if(this.state==='IDLE'||this.state==='DONE'){
-      // fresh start — clear previous times
-      this.t0=this.t1=now; this.bh=0; this.hh=0;
-      this.state=sess.useBH?'RUN':'INT'; this._loop();
+      this.splitBH=0; this.splitHH=0;
+      if(!this.enableBH){ this.state='INT'; this.t1=now; }
+      else              { this.state='RUN'; this.t0=now; }
+      this._loop();
     } else if(this.state==='RUN'){
-      this.bh=(now-this.t0)/1000; this.t1=now; this.state='INT';
+      this.splitBH=(now-this.t0)/1000; this.t1=now;
+      if(this.splitBH>CFG.autoHog){ this.splitBH=0; this.t0=0; }
+      if(this.enableHH) this.state='INT';
+      else this._finish();
     } else if(this.state==='INT'){
-      this.hh=(now-this.t1)/1000; this._finish();
+      this.splitHH=(now-this.t1)/1000;
+      this._finish();
     }
   }
   _loop(){
-    const t=()=>{
+    const tick=()=>{
       const now=Date.now();
-      // Auto-hog: BH exceeded 5.5s → skip to HH
-      if(this.state==='RUN'&&(now-this.t0)/1000>=CFG.autoHog){
-        this.bh=0; this.t1=now; this.state='INT';
+      if(this.state==='RUN'){
+        const cur=(now-this.t0)/1000;
+        if(this.onTick) this.onTick({liveBH:cur,liveHH:null,...this});
+        if(cur>=CFG.autoHog){
+          this.splitBH=0; this.t1=this.t0; this.t0=0; this.state='INT';
+        }
+      } else if(this.state==='INT'){
+        const cur=(now-this.t1)/1000;
+        if(this.onTick) this.onTick({liveBH:null,liveHH:cur,...this});
+        if(cur>=CFG.timeout){ this.splitHH=0; this._finish(); return; }
       }
-      // 19s HH timeout → auto-finish
-      if(this.state==='INT'&&(now-this.t1)/1000>=19){
-        this.hh=(now-this.t1)/1000; this._finish(); return;
-      }
-      if(this.onTick) this.onTick(this);
-      if(this.state==='RUN'||this.state==='INT') this.raf=requestAnimationFrame(t);
+      if(this.state==='RUN'||this.state==='INT')
+        this.raf=requestAnimationFrame(tick);
     };
-    this.raf=requestAnimationFrame(t);
+    this.raf=requestAnimationFrame(tick);
   }
-  _finish(){ cancelAnimationFrame(this.raf); this.state='DONE'; if(this.onFinish)this.onFinish(this); }
-  live(){ const n=Date.now(); return { bh:this.state==='RUN'?(n-this.t0)/1000:this.bh, hh:this.state==='INT'?(n-this.t1)/1000:this.hh }; }
+  _finish(){ cancelAnimationFrame(this.raf); this.raf=null; this.state='DONE'; if(this.onFinish) this.onFinish(this); }
 }
 
 // ════════════════════════════════════════════════
@@ -689,44 +707,67 @@ class SW {
 PS.seed();
 const sess = new Session();
 const sw   = new SW();
-let selZ=null, selS=null, nerd=true, iceSlotIdx=0, pendBH=0, pendHH=0;
+let selZ=null, selS=null, nerd=true, iceSlotIdx=0;
+// pending shot object (mirrors full-size tempShot)
+let pendShot=null;
 
 const App = {
 
   // ── DISPLAY ──────────────────────────────────
-  draw(s){
-    const {bh,hh}=s.live();
+  draw(t){
+    // t is a tick snapshot: {state, splitBH, splitHH, enableBH, enableHH, liveBH?, liveHH?}
     const $bh=document.getElementById('val-bh');
     const $hh=document.getElementById('val-hh');
     const $eBH=document.getElementById('est-bh');
     const $eHH=document.getElementById('est-hh');
     const $lbl=document.getElementById('start-lbl');
     const halfBH=document.getElementById('half-bh');
+    const halfHH=document.getElementById('half-hh');
 
-    // BH half
-    halfBH.classList.toggle('off-col',!sess.useBH);
-    if(s.state==='IDLE'||s.state==='DONE'){
-      if(bh>0){ $bh.textContent=bh.toFixed(2); $bh.className='t-val';
+    halfBH.classList.toggle('off-col', !t.enableBH);
+    halfHH.classList.toggle('off-col', !t.enableHH);
+
+    if(t.state==='RUN'){
+      // BH running, HH blank
+      const v=t.liveBH!=null?t.liveBH:0;
+      $bh.textContent=v>0?v.toFixed(2):'--'; $bh.className='t-val';
+      $eBH.textContent=''; $eBH.className='t-est dim';
+      $hh.textContent='--'; $hh.className='t-val dim';
+      $eHH.textContent=''; $eHH.className='t-est dim';
+      $lbl.textContent='HOG 1';
+    } else if(t.state==='INT'){
+      // BH locked (or -- if auto-hogged), HH running
+      if(t.splitBH>0){
+        $bh.textContent=t.splitBH.toFixed(2); $bh.className='t-val';
+        const p=sess.predict('BH',t.splitBH);
+        $eBH.textContent=p!=null?distToZone(p):''; $eBH.className='t-est';
+      } else {
+        $bh.textContent='--'; $bh.className='t-val dim';
+        $eBH.textContent=''; $eBH.className='t-est dim';
+      }
+      const hv=t.liveHH!=null?t.liveHH:0;
+      $hh.textContent=hv>0?hv.toFixed(2):'--'; $hh.className='t-val';
+      $eHH.textContent=''; $eHH.className='t-est dim';
+      $lbl.textContent='HOG 2';
+    } else {
+      // IDLE or DONE
+      const bh=t.splitBH, hh=t.splitHH;
+      if(bh>0 && t.enableBH){
+        $bh.textContent=bh.toFixed(2); $bh.className='t-val';
         const p=sess.predict('BH',bh); $eBH.textContent=p!=null?distToZone(p):''; $eBH.className='t-est';
-      } else { $bh.textContent='--'; $bh.className='t-val dim'; $eBH.textContent=''; $eBH.className='t-est dim'; }
-    } else if(s.state==='RUN'){
-      $bh.textContent=bh>0?bh.toFixed(2):'--'; $bh.className='t-val'; $eBH.textContent=''; $eBH.className='t-est dim';
-    } else { // INT
-      $bh.textContent=bh.toFixed(2); $bh.className='t-val';
-      const p=sess.predict('BH',bh); $eBH.textContent=p!=null?distToZone(p):''; $eBH.className='t-est';
+      } else {
+        $bh.textContent='--'; $bh.className='t-val dim';
+        $eBH.textContent=''; $eBH.className='t-est dim';
+      }
+      if(hh>0 && t.enableHH){
+        $hh.textContent=hh.toFixed(2); $hh.className='t-val';
+        const p=sess.predict('HH',hh); $eHH.textContent=p!=null?distToZone(p):''; $eHH.className='t-est';
+      } else {
+        $hh.textContent='--'; $hh.className='t-val dim';
+        $eHH.textContent=''; $eHH.className='t-est dim';
+      }
+      $lbl.textContent='START';
     }
-
-    // HH half
-    if(hh>0){
-      $hh.textContent=hh.toFixed(2); $hh.className='t-val';
-      if(s.state==='DONE'){ const p=sess.predict('HH',hh); $eHH.textContent=p!=null?distToZone(p):''; $eHH.className='t-est'; }
-      else { $eHH.textContent=''; $eHH.className='t-est dim'; }
-    } else { $hh.textContent='--'; $hh.className='t-val dim'; $eHH.textContent=''; $eHH.className='t-est dim'; }
-
-    // Start label
-    if(s.state==='RUN') $lbl.textContent='HOG 1';
-    else if(s.state==='INT') $lbl.textContent='HOG 2';
-    else $lbl.textContent='START';
   },
 
   refreshProfiles(){
@@ -746,20 +787,21 @@ const App = {
   drawGrid(){
     const cover=document.getElementById('start-cover');
     const inTray=cover.classList.contains('peek');
-    // show predicted zone only when tray is open and user hasn't picked yet
+    // predicted zone pre-highlight (only when tray is open and no zone selected yet)
     let predZ=null;
-    if(inTray&&selZ===null){
-      const live=sw.live();
-      const bh=live.bh,hh=live.hh;
-      const ft=bh>0?sess.predict('BH',bh):hh>0?sess.predict('HH',hh):null;
+    if(inTray && selZ===null && pendShot){
+      const bh=pendShot.bh, hh=pendShot.hh;
+      const ft=pendShot.useBH&&bh>0 ? sess.predict('BH',bh)
+             : pendShot.useHH&&hh>0 ? sess.predict('HH',hh) : null;
       if(ft!=null) predZ=distToZone(ft);
     }
+    const useBH = pendShot ? pendShot.useBH : sw.enableBH;
     document.querySelectorAll('.gb[data-z]').forEach(el=>{
       el.classList.toggle('sel', selZ ? el.dataset.z===selZ : el.dataset.z===predZ);
     });
     document.querySelectorAll('.gb[data-s]').forEach(el=>{
       el.classList.toggle('sel', el.dataset.s===selS);
-      el.classList.toggle('off', !sess.useBH);
+      el.classList.toggle('off', !useBH);
     });
   },
 
@@ -767,8 +809,8 @@ const App = {
   tapStart(){
     const cover=document.getElementById('start-cover');
     if(cover.classList.contains('peek')){
-      // Peek strip tapped → restart clock
-      this._hideTray(); sw.reset(); sw.action(); return;
+      // Peek strip tapped → discard & restart clock
+      this._hideTray(); pendShot=null; sw.reset(); sw.action(); return;
     }
     sw.action();
   },
@@ -780,36 +822,82 @@ const App = {
   },
   _hideTray(){
     document.getElementById('start-cover').classList.remove('peek');
-    selZ=null; selS=null; this.drawGrid();
+    selZ=null; selS=null;
+  },
+
+  // ── activateInput — mirrors full-size activateInput ──
+  _activateInput(s){
+    // Show/hide HH dashes for timeout (splitHH===0 after enabled)
+    const bhValid    = s.enableBH && s.splitBH >= CFG.minBH && s.splitBH < CFG.maxBH;
+    const hhValid    = s.enableHH && s.splitHH >= CFG.minHH && s.splitHH < CFG.maxHH;
+    const bhTooShort = s.enableBH && (s.splitBH < CFG.minBH);
+    const hhTooShort = s.enableHH && (s.splitHH < CFG.minHH);
+
+    // Abort if all enabled times are bad
+    let abort=false;
+    if( s.enableBH &&  s.enableHH && bhTooShort && hhTooShort) abort=true;
+    if( s.enableBH && !s.enableHH && bhTooShort) abort=true;
+    if(!s.enableBH &&  s.enableHH && hhTooShort) abort=true;
+    if(abort) return; // leave times on screen, keep START up
+
+    pendShot = {
+      player: sess.active,
+      bh: s.splitBH, hh: s.splitHH,
+      useBH: bhValid,
+      useHH: hhValid,
+    };
+    this._revealTray();
   },
 
   // ── GRID ─────────────────────────────────────
-  tapZone(z){ selZ=z; this.drawGrid(); if(selS!==null||!sess.useBH) this._store(); },
-  tapSweep(s){ selS=s; this.drawGrid(); if(selZ!==null) this._store(); },
+  tapZone(z){
+    if(!pendShot) return;
+    selZ=z; this.drawGrid();
+    if(selS!==null || !pendShot.useBH) this._store();
+  },
+  tapSweep(s){
+    if(!pendShot) return;
+    selS=s; this.drawGrid();
+    if(selZ!==null) this._store();
+  },
   _store(){
-    if(!selZ) return;
-    if(!selS&&sess.useBH) return;
-    sess.addShot(pendBH, pendHH, selZ, selS||'N/A');
-    setTimeout(()=>{ this._hideTray(); sw.reset(); this.draw(sw); this.refreshProfiles(); }, 80);
+    if(!pendShot||!selZ) return;
+    if(pendShot.useBH && selS===null) return;
+    sess.addShot(pendShot.bh, pendShot.hh, selZ, selS||'N/A', pendShot.useBH, pendShot.useHH);
+    pendShot=null;
+    setTimeout(()=>{
+      this._hideTray(); sw.reset();
+      // Re-enable BH for next shot (mirrors full-size checkCommit)
+      sw.enableBH=true;
+      this.draw({liveBH:null,liveHH:null,...sw});
+      this.refreshProfiles();
+    }, 80);
   },
   doDiscard(){
-    this._hideTray(); sw.reset(); this.draw(sw);
+    pendShot=null; this._hideTray(); sw.reset();
+    sw.enableBH=true;
+    this.draw({liveBH:null,liveHH:null,...sw});
   },
 
-  // ── PROFILE TOGGLE (tap again to deselect → team) ─
+  // ── BH / HH TOGGLE — always available ────────
+  toggleBH(){
+    sw.enableBH=!sw.enableBH;
+    // If tray open, update pendShot live
+    if(pendShot){
+      pendShot.useBH = sw.enableBH && pendShot.bh>=CFG.minBH && pendShot.bh<CFG.maxBH;
+    }
+    this.draw({liveBH:null,liveHH:null,...sw}); this.drawGrid();
+  },
+  toggleHH(){
+    sw.enableHH=!sw.enableHH;
+    this.draw({liveBH:null,liveHH:null,...sw});
+  },
+
+  // ── PROFILE TOGGLE ───────────────────────────
   setProfile(id){
     sess.active = sess.active===id ? null : id;
     this.refreshProfiles();
   },
-
-  toggleBH(){
-    if(sw.state!=='INT'&&sw.state!=='DONE') return;
-    sess.useBH=!sess.useBH;
-    if(!sess.useBH){ pendBH=0; }
-    this.draw(sw); this.drawGrid();
-  },
-
-  // ── MENU ─────────────────────────────────────
   openMenu(){ document.getElementById('menu-overlay').classList.add('open'); this.openSub('sc-main'); },
   closeMenu(){ document.getElementById('menu-overlay').classList.remove('open'); },
   openSub(id){
@@ -822,7 +910,7 @@ const App = {
   },
   confirmNew(){ document.getElementById('ov-confirm').classList.add('show'); },
   closeOv(id){ document.getElementById(id).classList.remove('show'); },
-  doNewGame(){ sess.newGame(); this.closeOv('ov-confirm'); this.closeMenu(); this.draw(sw); this.refreshProfiles(); },
+  doNewGame(){ sess.newGame(); this.closeOv('ov-confirm'); this.closeMenu(); this.draw({liveBH:null,liveHH:null,...sw}); this.refreshProfiles(); },
 
   toggleMode(){
     nerd=!nerd;
@@ -918,7 +1006,7 @@ const App = {
   },
   closePM(){
     document.getElementById('pm-modal').classList.remove('show');
-    sess.recalibrate(); this.refreshProfiles(); this.draw(sw);
+    sess.recalibrate(); this.refreshProfiles(); this.draw({liveBH:null,liveHH:null,...sw});
   },
   _saveName(id){
     const v=document.getElementById('pm-inp-name')?.value.trim();
@@ -954,7 +1042,7 @@ const App = {
   },
   _loadGame(id){
     sess.loadArchive(id);
-    this.closeMenu(); sw.reset(); this.draw(sw); this.refreshProfiles();
+    this.closeMenu(); sw.reset(); this.draw({liveBH:null,liveHH:null,...sw}); this.refreshProfiles();
   },
 
   // ── EXPORT ───────────────────────────────────
@@ -984,21 +1072,15 @@ const App = {
 
   // ── BOOT ─────────────────────────────────────
   init(){
-    sw.onTick = s => this.draw(s);
+    sw.onTick   = t => this.draw(t);
     sw.onFinish = s => {
-      pendBH=s.bh; pendHH=s.hh;
-      // Validate times — if unrealistic, keep START up + times visible, no tray
-      const bhOk = !sess.useBH || (s.bh>=CFG.minBH && s.bh<=CFG.maxBH);
-      const hhOk = s.hh>=CFG.minHH && s.hh<=CFG.maxHH;
-      if(!bhOk||!hhOk){
-        // Leave sw in DONE state so times stay on display — just don't reveal tray
-        this.draw(s); return;
-      }
-      this.draw(s); this._revealTray();
+      this.draw({liveBH:null,liveHH:null,...s});
+      this._activateInput(s);
     };
     this._initSwipe();
     this._initLongPress();
-    this.refreshProfiles(); this.draw(sw);
+    this.refreshProfiles();
+    this.draw({liveBH:null,liveHH:null,...sw});
   }
 };
 
