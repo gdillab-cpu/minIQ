@@ -1356,6 +1356,7 @@ const App = {
         case 'delete-game':    this._deleteGame(parseInt(el.dataset.id)); break;
         case 'rename-profile': this._renameProfile(el.dataset.name); break;
         case 'delete-profile': this._deleteProfile(el.dataset.name); break;
+        case 'export':         this.exportCSV(); break;
       }
     };
 
