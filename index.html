@@ -351,7 +351,7 @@ body {
     </div>
     <!-- Ice speeds -->
     <div class="sub" id="sc-ice">
-      <div class="sub-hdr"><div class="sub-title" id="ice-title">Ice Speeds</div><div class="sub-back" data-action="nav-back">‹ Back</div></div>
+      <div class="sub-hdr"><div class="sub-title" id="ice-title" data-action="cycle-ice" style="cursor:pointer;">Ice Speeds</div><div class="sub-back" data-action="nav-back">‹ Back</div></div>
       <div class="ice-col-hdr"><div></div><div>BH</div><div>HH</div></div>
       <div class="sub-body" id="ice-body"></div>
     </div>
@@ -1120,7 +1120,7 @@ const App = {
   _showSub(id){
     document.querySelectorAll('.sub').forEach(s=>s.classList.remove('active'));
     document.getElementById(id)?.classList.add('active');
-    if(id==='sc-ice')      this._renderIce();
+    if(id==='sc-ice')      { this._iceSlots=null; this._renderIce(); }
     if(id==='sc-log')      this._renderLog();
     if(id==='sc-profiles') this._renderProfiles();
     if(id==='sc-games')    this._renderGames();
@@ -1148,18 +1148,59 @@ const App = {
   },
 
   // ── ICE SPEEDS ───────────────────────────────
+  // Condensed 5-zone table matching full-size: Hack, B12, TEE, T12, Mid
+  _ICE_ZONES: ['Hack','B 12','TEE','T 12','Mid'],
+  _iceSlots: null, // built on first open
+  _iceIdx: 0,
+
+  _buildIceSlots(){
+    // Active game slots that have a non-default name, plus Team
+    const named = CFG.slots.filter(id => {
+      const n = sess.profiles[id];
+      return n && !CFG.defaultNames.has(n.toUpperCase());
+    });
+    return [...named, null]; // null = Team
+  },
+
+  cycleIce(){
+    if(!this._iceSlots||!this._iceSlots.length) this._iceSlots=this._buildIceSlots();
+    this._iceIdx=(this._iceIdx+1)%this._iceSlots.length;
+    this._renderIce();
+  },
+
   _renderIce(){
-    const id=sess.active; // use whatever is selected on main screen
-    const name=id?(sess.profiles[id]||id):'Team';
-    document.getElementById('ice-title').textContent='Ice · '+name;
-    const rows=sess.iceSpeeds(id);
-    document.getElementById('ice-body').innerHTML=rows.map(r=>
-      `<div class="ice-row ${r.zone==='TEE'?'tee':''}">
-        <div class="ice-zone">${r.zone}</div>
-        <div class="ice-val">${r.bh>0?r.bh.toFixed(2):'--'}</div>
-        <div class="ice-val">${r.hh>0?r.hh.toFixed(2):'--'}</div>
-      </div>`
-    ).join('');
+    if(!this._iceSlots||!this._iceSlots.length){
+      this._iceSlots=this._buildIceSlots(); this._iceIdx=0;
+    }
+    // Sync to current active profile if possible
+    const activeSlot=sess.active;
+    if(activeSlot){
+      const i=this._iceSlots.indexOf(activeSlot);
+      if(i>=0) this._iceIdx=i;
+    }
+    const slotId=this._iceSlots[this._iceIdx];
+    const name=slotId?(sess.profiles[slotId]||slotId):'Team';
+    const title=document.getElementById('ice-title');
+    title.textContent=name+' ›';
+    title.style.cursor='pointer';
+
+    const ICE_D={Hack:33.0,'B 12':26.5,TEE:21.0,'T 12':15.5,Mid:7.5};
+    const bhOff=sess.bh.iceBase+(slotId?(()=>{
+      const man=sess.manOff[slotId]||0;
+      return man!==0 ? man*CFG.bhSlope : (sess.slots[slotId]?.effectiveOff||0);
+    })():0);
+    const hhOff=sess.hh.iceOff;
+
+    document.getElementById('ice-body').innerHTML=this._ICE_ZONES.map(zone=>{
+      const d=ICE_D[zone];
+      const bh=(d-CFG.bhInt-bhOff)/CFG.bhSlope;
+      const hh=(d-CFG.hhInt-hhOff)/CFG.hhSlope;
+      return `<div class="ice-row${zone==='TEE'?' tee':''}">
+        <div class="ice-zone">${zone}</div>
+        <div class="ice-val">${bh>0?bh.toFixed(2):'--'}</div>
+        <div class="ice-val">${hh>0?hh.toFixed(2):'--'}</div>
+      </div>`;
+    }).join('');
   },
 
   // ── SHOT LOG ─────────────────────────────────
@@ -1291,7 +1332,7 @@ const App = {
         case 'toggle-mode': this.toggleMode(); break;
         case 'nav':         this.openSub(el.dataset.sub); break;
         case 'nav-back':    this._navBack(); break;
-        case 'export':      this.exportCSV(); break;
+        case 'cycle-ice':   this.cycleIce(); break;
         case 'do-save':     this.doSave(); break;
         case 'confirm-new': this.confirmNew(); break;
         case 'do-new-game': this.doNewGame(); break;
