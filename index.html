@@ -351,28 +351,28 @@ body {
     </div>
     <!-- Ice speeds -->
     <div class="sub" id="sc-ice">
-      <div class="sub-hdr"><div class="sub-title" id="ice-title">Ice Speeds</div><div class="sub-back" data-action="nav" data-sub="sc-main">‹ Back</div></div>
+      <div class="sub-hdr"><div class="sub-title" id="ice-title">Ice Speeds</div><div class="sub-back" data-action="nav-back">‹ Back</div></div>
       <div class="ice-col-hdr"><div></div><div>BH</div><div>HH</div></div>
       <div class="sub-body" id="ice-body"></div>
     </div>
     <!-- Shot log -->
     <div class="sub" id="sc-log">
-      <div class="sub-hdr"><div class="sub-title">Shot Log</div><div class="sub-back" data-action="nav" data-sub="sc-main">‹ Back</div></div>
+      <div class="sub-hdr"><div class="sub-title">Shot Log</div><div class="sub-back" data-action="nav-back">‹ Back</div></div>
       <div class="sub-body" id="log-body"></div>
     </div>
     <!-- Profiles -->
     <div class="sub" id="sc-profiles">
-      <div class="sub-hdr"><div class="sub-title">Profiles</div><div class="sub-back" data-action="nav" data-sub="sc-main">‹ Back</div></div>
+      <div class="sub-hdr"><div class="sub-title">Profiles</div><div class="sub-back" data-action="nav-back">‹ Back</div></div>
       <div class="sub-body" id="profiles-body"></div>
     </div>
     <!-- Save game -->
     <div class="sub" id="sc-save">
-      <div class="sub-hdr"><div class="sub-title">Save Game</div><div class="sub-back" data-action="nav" data-sub="sc-main">‹ Back</div></div>
+      <div class="sub-hdr"><div class="sub-title">Save Game</div><div class="sub-back" data-action="nav-back">‹ Back</div></div>
       <div class="sub-body" id="save-body"></div>
     </div>
     <!-- Load game -->
     <div class="sub" id="sc-games">
-      <div class="sub-hdr"><div class="sub-title">Load Game</div><div class="sub-back" data-action="nav" data-sub="sc-main">‹ Back</div></div>
+      <div class="sub-hdr"><div class="sub-title">Load Game</div><div class="sub-back" data-action="nav-back">‹ Back</div></div>
       <div class="sub-body" id="games-body"></div>
     </div>
   </div><!-- /menu-overlay -->
@@ -454,6 +454,16 @@ const PS = {
     p.histOffset=mu; p.histSigma=Math.sqrt(va);
   },
   list(){ return Object.values(this.load()).filter(p=>!CFG.defaultNames.has(p.name)); },
+  delete(name){
+    if(!name) return;
+    const all=this.load(); delete all[name.toUpperCase()]; this.save(all);
+  },
+  rename(oldName, newName){
+    if(!oldName||!newName) return;
+    const all=this.load(); const k=oldName.toUpperCase(); const nk=newName.toUpperCase();
+    if(!all[k]) return;
+    all[nk]={...all[k], name:nk}; delete all[k]; this.save(all);
+  },
   seed(){
     if(localStorage.getItem(this.SEED_KEY)) return;
     const seeds={
@@ -1086,16 +1096,35 @@ const App = {
     sess.active = sess.active===id ? null : id;
     this.refreshProfiles();
   },
-  openMenu(){ document.getElementById('menu-overlay').classList.add('open'); this.openSub('sc-main'); },
-  closeMenu(){ document.getElementById('menu-overlay').classList.remove('open'); },
+  openMenu(){
+    document.getElementById('menu-overlay').classList.add('open');
+    this._navStack=['sc-main'];
+    this._showSub('sc-main');
+  },
+  closeMenu(){
+    document.getElementById('menu-overlay').classList.remove('open');
+    this._navStack=[];
+  },
   openSub(id){
+    if(!this._navStack) this._navStack=[];
+    // avoid duplicates
+    if(this._navStack[this._navStack.length-1]!==id) this._navStack.push(id);
+    this._showSub(id);
+  },
+  _navBack(){
+    if(!this._navStack||this._navStack.length<=1){ this.closeMenu(); return; }
+    this._navStack.pop();
+    const prev=this._navStack[this._navStack.length-1];
+    this._showSub(prev);
+  },
+  _showSub(id){
     document.querySelectorAll('.sub').forEach(s=>s.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-    if(id==='sc-ice') this._renderIce();
-    if(id==='sc-log') this._renderLog();
+    document.getElementById(id)?.classList.add('active');
+    if(id==='sc-ice')      this._renderIce();
+    if(id==='sc-log')      this._renderLog();
     if(id==='sc-profiles') this._renderProfiles();
-    if(id==='sc-games') this._renderGames();
-    if(id==='sc-save') this._renderSave();
+    if(id==='sc-games')    this._renderGames();
+    if(id==='sc-save')     this._renderSave();
   },
   confirmNew(){ document.getElementById('ov-confirm').classList.add('show'); },
   closeOv(id){ document.getElementById(id).classList.remove('show'); },
@@ -1151,17 +1180,25 @@ const App = {
 
   // ── PROFILES ─────────────────────────────────
   _renderProfiles(){
-    // Only show non-default named profiles from PlayerStore
     const all=PS.list();
     const body=document.getElementById('profiles-body');
-    if(!all.length){ body.innerHTML='<div style="padding:14px;font-size:10px;color:#222;text-align:center;">No named profiles yet.<br><span style="font-size:9px;color:#1a1a1a;">Name a slot to start accumulating.</span></div>'; return; }
+    if(!all.length){
+      body.innerHTML='<div style="padding:14px;font-size:10px;color:#222;text-align:center;">No named profiles yet.<br><span style="font-size:9px;color:#1a1a1a;">Name a slot to start accumulating data.</span></div>';
+      return;
+    }
     body.innerHTML=all.map(p=>{
       const offS=p.histOffset?((p.histOffset/CFG.bhSlope)*-1):0;
       const offStr=(offS>=0?'+':'')+offS.toFixed(2)+'s';
-      return `<div class="prof-row" data-action="open-pm" data-name="${p.name}">
-        <div class="prof-name">${p.name}</div>
+      return `<div class="game-row">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;">
+          <span class="prof-name">${p.name}</span>
+          <span class="prof-off">${offStr}</span>
+        </div>
         <div class="prof-meta">${p.shotCount} shots · ${p.gameCount} games</div>
-        <div class="prof-off">${offStr}</div>
+        <div class="game-actions" style="margin-top:5px;">
+          <div class="game-action-btn ga-rename" data-action="rename-profile" data-name="${p.name}">Rename</div>
+          <div class="game-action-btn ga-delete" data-action="delete-profile" data-name="${p.name}">Delete</div>
+        </div>
       </div>`;
     }).join('');
   },
@@ -1195,14 +1232,40 @@ const App = {
   },
   _saveName(id){
     const v=document.getElementById('pm-inp-name')?.value.trim();
-    if(v){ sess.profiles[id]=v.slice(0,5).toUpperCase(); sess.save(); this.refreshProfiles(); }
+    if(!v) return;
+    const oldName=(sess.profiles[id]||'').toUpperCase();
+    const newName=v.slice(0,5).toUpperCase();
+    sess.profiles[id]=newName; sess.save();
+    // Re-scan in-session history and append any shots for this slot under the new name
+    if(newName && !CFG.defaultNames.has(newName)){
+      sess.history.forEach(s=>{
+        if(s.player===id && s.useBH && s.bh>2 && s.actual!=null){
+          PS.append(newName, s.bh, s.actual-(s.sweep||0), sess.bh.iceBase, sess._tag);
+        }
+      });
+    }
+    this.refreshProfiles();
   },
   _saveOff(id){
     const v=parseFloat(document.getElementById('pm-inp-off')?.value||'0');
     sess.manOff[id]=isNaN(v)?0:parseFloat(v.toFixed(2)); sess.save();
   },
 
-  // ── UNIFIED EVENT DISPATCH ───────────────────
+  _renameProfile(name){
+    const newName=prompt('Rename profile:', name);
+    if(!newName||!newName.trim()) return;
+    const n=newName.trim().slice(0,5).toUpperCase();
+    if(CFG.defaultNames.has(n)){ alert('Cannot use a reserved name.'); return; }
+    PS.rename(name, n);
+    // Update any matching slot label too
+    CFG.slots.forEach(id=>{ if(sess.profiles[id]===name) sess.profiles[id]=n; });
+    sess.save(); this._renderProfiles();
+  },
+  _deleteProfile(name){
+    if(!confirm(`Delete all data for ${name}?`)) return;
+    PS.delete(name);
+    this._renderProfiles();
+  },
   // Mirrors full-size: touchstart fires instantly with preventDefault (no 300ms delay).
   // mousedown handles desktop. Profile buttons use touchstart/touchend for long-press.
   _initEvents(){
@@ -1227,19 +1290,22 @@ const App = {
         case 'profile':     this.setProfile(el.dataset.id); break;
         case 'toggle-mode': this.toggleMode(); break;
         case 'nav':         this.openSub(el.dataset.sub); break;
+        case 'nav-back':    this._navBack(); break;
         case 'export':      this.exportCSV(); break;
         case 'do-save':     this.doSave(); break;
         case 'confirm-new': this.confirmNew(); break;
         case 'do-new-game': this.doNewGame(); break;
         case 'close-ov':    this.closeOv(el.dataset.ov); break;
-        case 'close-menu':  this.closeMenu(); break;
+        case 'close-menu':  this._navBack(); break;
         case 'close-pm':    this.closePM(); break;
         case 'open-pm':     this.openPM(el.dataset.name); break;
         case 'save-name':   this._saveName(el.dataset.id); break;
         case 'save-off':    this._saveOff(el.dataset.id); break;
         case 'load-game':   this._loadGame(parseInt(el.dataset.id)); break;
-        case 'rename-game': this._renameGame(parseInt(el.dataset.id)); break;
-        case 'delete-game': this._deleteGame(parseInt(el.dataset.id)); break;
+        case 'rename-game':    this._renameGame(parseInt(el.dataset.id)); break;
+        case 'delete-game':    this._deleteGame(parseInt(el.dataset.id)); break;
+        case 'rename-profile': this._renameProfile(el.dataset.name); break;
+        case 'delete-profile': this._deleteProfile(el.dataset.name); break;
       }
     };
 
@@ -1291,13 +1357,23 @@ const App = {
     }, {passive:true});
 
     document.getElementById('watch').addEventListener('touchend', e=>{
-      // Swipe detection
+      // Swipe detection — only fire if movement is primarily horizontal (dx > dy)
       if(swipeActive){
         swipeActive=false;
         const dx=e.changedTouches[0].clientX-swipeX0;
+        const dy=Math.abs(e.changedTouches[0].clientY-swipeY0);
         const m=document.getElementById('menu-overlay');
-        if(dx<-30 && !m.classList.contains('open')){ this.openMenu(); touchTarget=null; longPressTimer&&clearTimeout(longPressTimer); return; }
-        if(dx>30  &&  m.classList.contains('open')){ this.closeMenu(); touchTarget=null; longPressTimer&&clearTimeout(longPressTimer); return; }
+        // Must be more horizontal than vertical, and over threshold
+        if(Math.abs(dx)>30 && Math.abs(dx)>dy*1.5){
+          if(dx<0 && !m.classList.contains('open')){
+            // Left swipe → open menu
+            this.openMenu(); touchTarget=null; longPressTimer&&clearTimeout(longPressTimer); return;
+          }
+          if(dx>0 && m.classList.contains('open')){
+            // Right swipe → step back one level (not necessarily close)
+            this._navBack(); touchTarget=null; longPressTimer&&clearTimeout(longPressTimer); return;
+          }
+        }
       }
 
       // Profile tap (long-press didn't fire)
