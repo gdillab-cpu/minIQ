@@ -813,7 +813,7 @@ class Session {
   newGame(){
     // Just discard — user must save explicitly first if they want to keep data
     this.history=[]; this.bh={iceBase:0}; this.hh={iceOff:0};
-    this.slots={}; this._tag='g'+Date.now(); this.save();
+    this.slots={}; this.manOff={}; this._tag='g'+Date.now(); this.save();
   }
 
   saveGame(name){
@@ -1531,12 +1531,21 @@ const App = {
       csv+=`${name},${s.bh!=null?s.bh.toFixed(2):''},${s.useBH?1:0},${s.hh!=null?s.hh.toFixed(2):''},${s.zone||''},${s.sweepLabel||''}\n`;
     });
     const blob=new Blob([csv],{type:'text/csv'});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a'); a.href=url; a.download='clock-dilla.csv'; a.click();
+    const file=new File([blob],'clock-dilla.csv',{type:'text/csv'});
+    // Web Share API: works in iOS standalone/home-screen mode where blob downloads silently fail
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      navigator.share({files:[file], title:'Clock-Dilla Export'}).catch(()=>{});
+    } else {
+      // Fallback for desktop/regular browsers
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download='clock-dilla.csv';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(a.href); },100);
+    }
     this.closeMenu();
   },
-
-  _csvFallback(){},
 
 };
 
