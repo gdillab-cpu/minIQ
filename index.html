@@ -196,7 +196,7 @@ body {
 .c-red    { color: #FF453A; } .c-red::before    { color: #FF453A; }
 .c-purple { color: #BF5AF2; } .c-purple::before { color: #BF5AF2; }
 .menu-foot {
-  padding: 8px 20px 14px; font-size: 9px; color: #1a1a1a; text-align: center;
+  padding: 8px 20px 14px; font-size: 9px; color: #444; text-align: center;
   letter-spacing: 1px; border-top: 1px solid #0a0a0a; flex-shrink: 0; cursor: pointer;
 }
 /* sub-screens */
@@ -215,30 +215,30 @@ body {
   padding: 5px 10px; font-size: 10px; font-weight: 800; color: #0A84FF;
   text-align: right; cursor: pointer; border-bottom: 1px solid #0a0a0a;
 }
-.ice-col-hdr { display: grid; grid-template-columns: 38px 1fr 1fr; padding: 3px 18px; font-size: 9px; color: #252525; font-weight: 700; border-bottom: 1px solid #080808; }
+.ice-col-hdr { display: grid; grid-template-columns: 38px 1fr 1fr; padding: 3px 18px; font-size: 9px; color: #555; font-weight: 700; border-bottom: 1px solid #080808; }
 .ice-col-hdr div:not(:first-child) { text-align: right; }
-.ice-row { display: grid; grid-template-columns: 38px 1fr 1fr; padding: 5px 18px; border-bottom: 1px solid #080808; font-size: 10px; cursor: pointer; }
+.ice-row { display: grid; grid-template-columns: 38px 1fr 1fr; padding: 5px 18px; border-bottom: 1px solid #0d0d0d; font-size: 10px; cursor: pointer; }
 .ice-row.tee .ice-zone, .ice-row.tee .ice-val { color: #fff; }
-.ice-zone { font-weight: 700; color: #242424; }
-.ice-val  { text-align: right; font-variant-numeric: tabular-nums; color: #2e2e2e; }
+.ice-zone { font-weight: 700; color: #666; }
+.ice-val  { text-align: right; font-variant-numeric: tabular-nums; color: #666; }
 /* shot log */
-.log-row { padding: 5px 18px; border-bottom: 1px solid #080808; font-size: 9px; color: #383838; display: grid; grid-template-columns: 22px 1fr 1fr 1fr 20px; gap: 2px; align-items: center; }
+.log-row { padding: 5px 18px; border-bottom: 1px solid #080808; font-size: 9px; color: #666; display: grid; grid-template-columns: 22px 1fr 1fr 1fr 20px; gap: 2px; align-items: center; }
 .log-zone { color: #888; font-weight: 700; }
 /* game picker */
-.game-row { padding: 8px 18px; border-bottom: 1px solid #0a0a0a; cursor: pointer; }
-.game-name { font-size: 11px; font-weight: 700; color: #888; }
-.game-date { font-size: 9px; color: #2a2a2a; margin-top: 1px; }
-.game-shots{ font-size: 9px; color: #1e1e1e; }
+.game-row { padding: 8px 18px; border-bottom: 1px solid #0d0d0d; cursor: pointer; }
+.game-name { font-size: 11px; font-weight: 700; color: #aaa; }
+.game-date { font-size: 9px; color: #555; margin-top: 1px; }
+.game-shots{ font-size: 9px; color: #555; }
 .game-actions { display: flex; gap: 4px; margin-top: 5px; }
 .game-action-btn { flex: 1; padding: 4px 0; text-align: center; font-size: 9px; font-weight: 700; border-radius: 4px; cursor: pointer; }
 .ga-load   { background: #0a1a0d; color: #30D158; }
-.ga-rename { background: #111; color: #555; }
+.ga-rename { background: #111; color: #888; }
 .ga-delete { background: #1a0a0a; color: #FF453A; }
 /* profile sub */
 .prof-row { padding: 7px 10px; border-bottom: 1px solid #0a0a0a; display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .prof-name { font-size: 12px; font-weight: 800; color: #fff; flex: 1; }
-.prof-meta { font-size: 9px; color: #2a2a2a; }
-.prof-off  { font-size: 10px; font-weight: 700; color: #555; }
+.prof-meta { font-size: 9px; color: #555; }
+.prof-off  { font-size: 10px; font-weight: 700; color: #666; }
 
 /* ─── OVERLAYS ─── */
 .overlay {
@@ -261,11 +261,11 @@ body {
 .pm-close{ font-size: 11px; color: #0A84FF; cursor: pointer; }
 .pm-body { padding: 8px 18px; overflow-y: auto; }
 .pm-row  { padding: 4px 0; font-size: 10px; display: flex; justify-content: space-between; border-bottom: 1px solid #0a0a0a; }
-.pm-lbl  { color: #2a2a2a; }
-.pm-val  { color: #777; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pm-lbl  { color: #555; }
+.pm-val  { color: #888; font-weight: 700; font-variant-numeric: tabular-nums; }
 .pm-input{ background: #111; border: 1px solid #333; color: #fff; font-size: 11px; font-weight: 700; padding: 5px 8px; border-radius: 4px; width: 100%; text-align: center; font-family: inherit; margin-top: 5px; outline: none; }
 .pm-btn  { background: #141414; color: #0A84FF; font-size: 10px; font-weight: 700; padding: 7px; border-radius: 6px; cursor: pointer; width: 100%; margin-top: 5px; text-align: center; touch-action: manipulation; }
-.pm-section { font-size: 9px; color: #252525; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-top: 8px; margin-bottom: 2px; }
+.pm-section { font-size: 9px; color: #444; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-top: 8px; margin-bottom: 2px; }
 </style>
 </head>
 <body>
@@ -1530,9 +1530,11 @@ const App = {
       const name=s.player?(sess.profiles[s.player]||s.player):'—';
       csv+=`${name},${s.bh!=null?s.bh.toFixed(2):''},${s.useBH?1:0},${s.hh!=null?s.hh.toFixed(2):''},${s.zone||''},${s.sweepLabel||''}\n`;
     });
+    const url=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
     const a=document.createElement('a');
-    a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-    a.download='clock-dilla.csv'; a.click();
+    a.href=url; a.download='clock-dilla.csv';
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 200);
     this.closeMenu();
   },
 
