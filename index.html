@@ -378,7 +378,8 @@ body.fullscreen-mode #hint { display: none !important; }
         <div style="display:flex;gap:4px;align-items:center;">
           <div class="mode-btn" id="scale-btn" data-action="toggle-scale" style="width:22px;height:22px;cursor:pointer;">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="width:100%;height:100%;display:block;">
-              <path d="M4 14v6h6M20 10V4h-6M4 14l6-6M20 10l-6 6" fill="none" stroke="#888" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M15 3h6v6M9 21H3v-6" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M21 3l-7 7M3 21l7-7" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
           <div class="mode-btn" id="mode-btn" data-action="toggle-mode">
@@ -397,7 +398,6 @@ body.fullscreen-mode #hint { display: none !important; }
         <div class="menu-item c-grey nerd-item"   data-action="nav" data-sub="sc-log">Shot Log</div>
         <div class="menu-item c-grey nerd-item"   data-action="nav" data-sub="sc-graphs">Graphs</div>
         <div class="menu-item c-purple nerd-item" data-action="nav" data-sub="sc-profiles">Profiles</div>
-        <div class="menu-item c-grey nerd-item"   data-action="export">Export CSV</div>
         <div class="menu-item c-blue"             data-action="nav" data-sub="sc-save">Save Game</div>
         <div class="menu-item c-orange"           data-action="nav" data-sub="sc-games">Load Game</div>
         <div class="menu-item c-red"              data-action="confirm-new">New Game</div>
@@ -411,7 +411,7 @@ body.fullscreen-mode #hint { display: none !important; }
     </div>
     <!-- Shot log -->
     <div class="sub" id="sc-log">
-      <div class="sub-hdr"><div class="sub-title">Shot Log</div><div class="sub-back" data-action="nav-back">‹ Back</div></div>
+      <div class="sub-hdr"><div class="sub-title">Shot Log</div><div style="display:flex;gap:8px;align-items:center;"><div class="sub-back" style="color:#0A84FF;font-size:9px;font-weight:600;cursor:pointer;" data-action="export">Export</div><div class="sub-back" data-action="nav-back">‹ Back</div></div></div>
       <div class="sub-body" id="log-body"></div>
     </div>
     <!-- Graphs -->
@@ -679,7 +679,7 @@ class Session {
         else off+=(this.slots[this.active]?.effectiveOff||0);
       }
       const d=CFG.bhSlope*t+CFG.bhInt+off;
-      return(d>42||d<0)?null:d;
+      return d>42?null:d;
     }
     if(type==='HH'){
       if(t<CFG.minHH) return null;
@@ -1516,7 +1516,7 @@ const App = {
         if(Math.abs(dx)>30 && Math.abs(dx)>dy*1.5){
           if(dx<0 && !m.classList.contains('open')){
             // Left swipe → open menu; if timer just started from the touch, reset it
-            if(sw.state==='RUNNING' && (Date.now()-sw.t0)<800){
+            if((sw.state==='RUN'||sw.state==='INT') && (Date.now()-(sw.t0||sw.t1))<800){
               sw.reset(); this.draw({liveBH:null,liveHH:null,...sw});
             }
             this.openMenu(); touchTarget=null; longPressTimer&&clearTimeout(longPressTimer); return;
