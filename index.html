@@ -118,18 +118,22 @@ body {
 /* Front/guard zones — indigo */
 .gb.front  { background: #0e0e20; color: #3e3e6a; }
 .gb.front.sel  { background: #181830; color: #7878f0; }
+.gb.front.pred { background: #131324; color: #5858a8; }
 .gb.front:active { background: #1c1c38; }
 /* In-house scoring zones — green */
 .gb.house  { background: #0b140b; color: #2a422a; }
 .gb.house.sel  { background: #102a14; color: #30D158; }
+.gb.house.pred { background: #0d1f0f; color: #1e8838; }
 .gb.house:active { background: #142e18; }
 /* Behind-house — also green (B4, B12 match house) */
 .gb.back   { background: #0b140b; color: #2a422a; }
 .gb.back.sel   { background: #102a14; color: #30D158; }
+.gb.back.pred  { background: #0d1f0f; color: #1e8838; }
 .gb.back:active { background: #142e18; }
 /* THRU — blue (overcurl/behind-house, same family as guards) */
 .gb.thru   { background: #0a0e1a; color: #2a3050; }
 .gb.thru.sel   { background: #0e1830; color: #0A84FF; }
+.gb.thru.pred  { background: #0c1325; color: #0756a8; }
 /* Sweep column — purple */
 .gb.sweep  { background: #100d18; color: #3a2848; font-size: 9px; }
 .gb.sweep.sel  { background: #1e1030; color: #BF5AF2; }
@@ -475,7 +479,7 @@ body.fullscreen-mode #hint { display: none !important; }
 // ════════════════════════════════════════════════
 const CFG = {
   bhSlope:-22.7, bhInt:109.9, hhSlope:-4.9, hhInt:90.6,
-  minBH:2.0, maxBH:6.0, autoHog:5.5, minHH:7.0, maxHH:22.0, timeout:19.0,
+  minBH:2.0, maxBH:6.0, autoHog:5.5, minHH:7.0, maxHH:22.0, timeout:20.0,
   priorStrength:12, // historical profile worth this many equiv in-game shots
   nCap:8,           // max shots any one slot contributes to baseline
   zones:[
@@ -859,13 +863,8 @@ class Session {
     };
     this.history.unshift(shot);
     if(this.history.length>200) this.history.pop();
-    // persist to PlayerStore if named non-default
-    if(useBH&&this.active){
-      const name=this.profiles[this.active];
-      if(name&&!CFG.defaultNames.has(name.toUpperCase())&&bh>2&&zObj){
-        PS.append(name, bh, zObj.d-sv, this.bh.iceBase, this._tag);
-      }
-    }
+    // NOTE: PlayerStore is NOT updated here — only on saveGame()
+    // This lets users rename, discard, or choose not to commit shots
     this.recalibrate(); this.save();
   }
 
@@ -897,6 +896,13 @@ class Session {
       return `${d.getMonth()+1}/${d.getDate()} Game`;
     })();
     this.gameName=n;
+    // Commit shots to PlayerStore — only at save time, using final calibration
+    this.history.forEach(s=>{
+      if(!s.useBH || !s.player || s.bh==null || s.bh<=2 || s.actual==null) return;
+      const pName=this.profiles[s.player];
+      if(!pName || CFG.defaultNames.has(pName.toUpperCase())) return;
+      PS.append(pName, s.bh, s.actual-(s.sweep||0), this.bh.iceBase, this._tag);
+    });
     this.archives.unshift({
       id:Date.now(), name:n,
       date:new Date().toLocaleDateString(),
@@ -1074,7 +1080,10 @@ const App = {
     }
     const useBH = pendShot ? pendShot.useBH : sw.enableBH;
     document.querySelectorAll('.gb[data-z]').forEach(el=>{
-      el.classList.toggle('sel', selZ ? el.dataset.z===selZ : el.dataset.z===predZ);
+      const isConfirmed = selZ && el.dataset.z===selZ;
+      const isPredicted = !selZ && el.dataset.z===predZ;
+      el.classList.toggle('sel', isConfirmed);
+      el.classList.toggle('pred', isPredicted);
     });
     document.querySelectorAll('.gb[data-s]').forEach(el=>{
       el.classList.toggle('sel', el.dataset.s===selS);
@@ -1343,7 +1352,7 @@ const App = {
       const offSec=(slot.effectiveOff/CFG.bhSlope*-1).toFixed(2);
       offStr=offSec+'s';
       const offFt=slot.effectiveOff;
-      offLabel=offFt>0.3?' · pull':offFt<-0.3?' · push':'';
+      offLabel=offFt>0.3?' · push':offFt<-0.3?' · pull':'';
     }
     // Header: "Active Profile:" + input + Done
     const hdr=document.querySelector('.pm-hdr');
@@ -1382,14 +1391,8 @@ const App = {
     const oldName=(sess.profiles[id]||'').toUpperCase();
     const newName=v.slice(0,4).toUpperCase();
     sess.profiles[id]=newName; sess.save();
-    // Re-scan in-session history and append any shots for this slot under the new name
-    if(newName && !CFG.defaultNames.has(newName)){
-      sess.history.forEach(s=>{
-        if(s.player===id && s.useBH && s.bh>2 && s.actual!=null){
-          PS.append(newName, s.bh, s.actual-(s.sweep||0), sess.bh.iceBase, sess._tag);
-        }
-      });
-    }
+    // NOTE: No PS commit here — shots commit to PS only on saveGame()
+    // This lets users rename freely before saving
     this.refreshProfiles();
   },
   _saveOff(id){
