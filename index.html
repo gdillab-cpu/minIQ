@@ -163,6 +163,29 @@ body {
 }
 .start-cover.peek .lbl-main { display: none; }
 .start-cover.peek .lbl-peek { display: block; }
+/* Ghost ice numbers on START button */
+.ice-ghost {
+  position: absolute; top: 0; bottom: 0;
+  display: flex; flex-direction: column; justify-content: space-evenly;
+  padding: 12px 0;
+  font-size: 9px; font-weight: 600; font-variant-numeric: tabular-nums;
+  color: rgba(48,209,88,0.14); letter-spacing: 0; pointer-events: none;
+  line-height: 1;
+}
+.ice-ghost.left  { left: 8px; align-items: flex-start; }
+.ice-ghost.right { right: 8px; align-items: flex-end; }
+.start-cover.peek .ice-ghost { display: none; }
+/* Graph canvas in sub-screen */
+.graph-canvas { width: 100%; height: 140px; background: #080808; border-radius: 4px; }
+.graph-legend { display: flex; justify-content: center; gap: 6px; padding: 4px 0; flex-wrap: wrap; }
+.graph-legend span { font-size: 7px; font-weight: 700; display: flex; align-items: center; gap: 2px; color: #666; }
+.graph-legend .gdot { width: 5px; height: 5px; border-radius: 50%; }
+/* Full-screen mode */
+body.fullscreen-mode .watch-frame {
+  transform: scale(1.8); transform-origin: center center;
+}
+body.fullscreen-mode .watch-frame::after { display: none; }
+body.fullscreen-mode #hint { display: none !important; }
 
 /* ─── MENU OVERLAY ─── */
 .menu-overlay {
@@ -318,6 +341,8 @@ body {
     </div>
 
     <div class="start-cover" id="start-cover" data-action="start">
+      <div class="ice-ghost left" id="ice-ghost-bh"><span>—</span><span>—</span><span>—</span></div>
+      <div class="ice-ghost right" id="ice-ghost-hh"><span>—</span><span>—</span><span>—</span></div>
       <span class="lbl-main" id="start-lbl">START</span>
       <span class="lbl-peek">START</span>
     </div>
@@ -329,26 +354,34 @@ body {
     <div class="sub active" id="sc-main">
       <div class="menu-header">
         <div class="menu-title">Menu</div>
-        <div class="mode-btn" id="mode-btn" data-action="toggle-mode">
-          <svg id="mode-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-            <rect x="2" y="2" width="60" height="60" rx="15" fill="#B0B0B0"/>
-            <g fill="none" stroke="#505050" stroke-width="5"><circle cx="22" cy="28" r="10"/><circle cx="42" cy="28" r="10"/></g>
-            <g fill="#505050"><circle cx="22" cy="28" r="4"/><circle cx="42" cy="28" r="4"/></g>
-            <path d="M22 46 Q32 54 42 46" fill="none" stroke="#505050" stroke-width="3" stroke-linecap="round"/>
-            <path d="M32 58 L24 54 V62 Z M32 58 L40 54 V62 Z" fill="#505050"/>
-          </svg>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <div class="mode-btn" id="scale-btn" data-action="toggle-scale" style="width:22px;height:22px;cursor:pointer;">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="width:100%;height:100%;display:block;">
+              <rect x="1" y="1" width="22" height="22" rx="4" fill="#555" opacity="0.4"/>
+              <path d="M4 9V4h5M20 15v5h-5M4 15v5h5M20 9V4h-5" fill="none" stroke="#888" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="mode-btn" id="mode-btn" data-action="toggle-mode">
+            <svg id="mode-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+              <rect x="2" y="2" width="60" height="60" rx="15" fill="#B0B0B0"/>
+              <g fill="none" stroke="#505050" stroke-width="5"><circle cx="22" cy="28" r="10"/><circle cx="42" cy="28" r="10"/></g>
+              <g fill="#505050"><circle cx="22" cy="28" r="4"/><circle cx="42" cy="28" r="4"/></g>
+              <path d="M22 46 Q32 54 42 46" fill="none" stroke="#505050" stroke-width="3" stroke-linecap="round"/>
+              <path d="M32 58 L24 54 V62 Z M32 58 L40 54 V62 Z" fill="#505050"/>
+            </svg>
+          </div>
         </div>
       </div>
       <div class="menu-body">
         <div class="menu-item c-grey nerd-item"   data-action="nav" data-sub="sc-ice">Ice Speeds</div>
         <div class="menu-item c-grey nerd-item"   data-action="nav" data-sub="sc-log">Shot Log</div>
+        <div class="menu-item c-grey nerd-item"   data-action="nav" data-sub="sc-graphs">Graphs</div>
         <div class="menu-item c-purple nerd-item" data-action="nav" data-sub="sc-profiles">Profiles</div>
         <div class="menu-item c-blue"             data-action="nav" data-sub="sc-save">Save Game</div>
         <div class="menu-item c-blue"             data-action="export">Export CSV</div>
         <div class="menu-item c-orange"           data-action="nav" data-sub="sc-games">Load Game</div>
         <div class="menu-item c-red"              data-action="confirm-new">New Game</div>
       </div>
-      <div class="menu-foot" data-action="close-menu">← tap to close</div>
     </div>
     <!-- Ice speeds -->
     <div class="sub" id="sc-ice">
@@ -360,6 +393,24 @@ body {
     <div class="sub" id="sc-log">
       <div class="sub-hdr"><div class="sub-title">Shot Log</div><div class="sub-back" data-action="nav-back">‹ Back</div></div>
       <div class="sub-body" id="log-body"></div>
+    </div>
+    <!-- Graphs -->
+    <div class="sub" id="sc-graphs">
+      <div class="sub-hdr"><div class="sub-title">Graphs</div><div class="sub-back" data-action="nav-back">‹ Back</div></div>
+      <div class="menu-body">
+        <div class="menu-item c-grey" data-action="show-graph" data-type="BH">Back-Hog</div>
+        <div class="menu-item c-grey" data-action="show-graph" data-type="HH">Hog-Hog</div>
+        <div class="menu-item c-grey" data-action="show-graph" data-type="BH-Error">BH Error</div>
+        <div class="menu-item c-grey" data-action="show-graph" data-type="HH-Error">HH Error</div>
+      </div>
+    </div>
+    <!-- Graph view -->
+    <div class="sub" id="sc-graph-view">
+      <div class="sub-hdr"><div class="sub-title" id="graph-title">Graph</div><div class="sub-back" data-action="nav-back">‹ Back</div></div>
+      <div class="sub-body" style="padding:4px;">
+        <canvas class="graph-canvas" id="graph-canvas"></canvas>
+        <div class="graph-legend" id="graph-legend"></div>
+      </div>
     </div>
     <!-- Profiles -->
     <div class="sub" id="sc-profiles">
@@ -417,6 +468,7 @@ const CFG = {
   sweeps:[{n:'N/A',v:0},{n:'L',v:1.0},{n:'M',v:2.5},{n:'H',v:5.3}],
   slots:['Skip','3rd','2nd','Lead'],
   defaultNames:new Set(['SKIP','3RD','2ND','LEAD','-','TEAM']),
+  colors:{ Skip:'#FF453A', '3rd':'#FF9F0A', '2nd':'#0A84FF', Lead:'#30D158', '-':'#98989D' },
 };
 
 function distToZone(ft) {
@@ -552,6 +604,7 @@ class Session {
     this.history    = s.history    || [];
     this.archives   = s.archives   || [];
     this.manOff     = s.manOff     || {};
+    this.gameName   = s.gameName   || null;
     this.active     = null;   // null = team "-"
     this.bh         = {iceBase:0};
     this.hh         = {iceOff:0};
@@ -562,7 +615,7 @@ class Session {
   }
   _load(){ try{return JSON.parse(localStorage.getItem('cd_watch_v2')||'{}')}catch{return{}} }
   save(){ try{localStorage.setItem('cd_watch_v2',JSON.stringify({
-    profiles:this.profiles, history:this.history, archives:this.archives, manOff:this.manOff
+    profiles:this.profiles, history:this.history, archives:this.archives, manOff:this.manOff, gameName:this.gameName
   }))}catch{} }
 
   _ensureSample(){
@@ -813,7 +866,7 @@ class Session {
   newGame(){
     // Just discard — user must save explicitly first if they want to keep data
     this.history=[]; this.bh={iceBase:0}; this.hh={iceOff:0};
-    this.slots={}; this.manOff={}; this._tag='g'+Date.now(); this.save();
+    this.slots={}; this.manOff={}; this.gameName=null; this._tag='g'+Date.now(); this.save();
   }
 
   saveGame(name){
@@ -822,6 +875,7 @@ class Session {
       const d=new Date(); 
       return `${d.getMonth()+1}/${d.getDate()} Game`;
     })();
+    this.gameName=n;
     this.archives.unshift({
       id:Date.now(), name:n,
       date:new Date().toLocaleDateString(),
@@ -840,6 +894,7 @@ class Session {
     const g=this.archives.find(a=>a.id===id); if(!g) return;
     this.history=[...g.history];
     if(g.profiles) this.profiles={...g.profiles};
+    this.gameName=g.name||null;
     this.recalibrate(); this.save();
   }
 
@@ -981,6 +1036,7 @@ const App = {
       btn.classList.toggle('calibrated',n>=3);
       if(dot){ dot.style.opacity=n>=3?'0.9':'0.3'; }
     });
+    this.refreshIceGhost();
   },
 
   drawGrid(){
@@ -1231,12 +1287,13 @@ const App = {
     body.innerHTML=all.map(p=>{
       const offS=p.histOffset?((p.histOffset/CFG.bhSlope)*-1):0;
       const offStr=(offS>=0?'+':'')+offS.toFixed(2)+'s';
+      const sigSec=p.histSigma&&p.shotCount>=2?(p.histSigma/Math.abs(CFG.bhSlope)).toFixed(2):'—';
       return `<div class="game-row">
         <div style="display:flex;justify-content:space-between;align-items:baseline;">
           <span class="prof-name">${p.name}</span>
           <span class="prof-off">${offStr}</span>
         </div>
-        <div class="prof-meta">${p.shotCount} shots · ${p.gameCount} games</div>
+        <div class="prof-meta">${p.shotCount} shots · ${p.gameCount} games · σ ±${sigSec}s</div>
         <div class="game-actions" style="margin-top:5px;">
           <div class="game-action-btn ga-rename" data-action="rename-profile" data-name="${p.name}">Rename</div>
           <div class="game-action-btn ga-delete" data-action="delete-profile" data-name="${p.name}">Delete</div>
@@ -1253,13 +1310,19 @@ const App = {
     const name=isSlot?(sess.profiles[slotOrName]||slotOrName):slotOrName;
     const slot=slotId?sess.slots[slotId]||{}:{};
     const man=slotId?sess.manOff[slotId]||0:0;
-    document.getElementById('pm-title').textContent=name+' · Profile';
+    const hist=PS.get(name);
+    const sigStr=hist&&hist.shotCount>=2?('±'+(hist.histSigma/Math.abs(CFG.bhSlope)).toFixed(2)+'s'):'—';
+    document.getElementById('pm-title').textContent='';
     document.getElementById('pm-body').innerHTML=`
-      <div class="pm-row"><span class="pm-lbl">In-game shots</span><span class="pm-val">${slot.n||0}</span></div>
-      <div class="pm-row"><span class="pm-lbl">Auto offset</span><span class="pm-val">${slot.effectiveOff?((slot.effectiveOff/CFG.bhSlope*-1).toFixed(2)+'s'):'—'}</span></div>
       ${slotId?`
       <div class="pm-section">Rename slot</div>
       <input class="pm-input" id="pm-inp-name" maxlength="5" value="${name}">
+      `:''}
+      <div class="pm-row"><span class="pm-lbl">In-game shots</span><span class="pm-val">${slot.n||0}</span></div>
+      <div class="pm-row"><span class="pm-lbl">Auto offset</span><span class="pm-val">${slot.effectiveOff?((slot.effectiveOff/CFG.bhSlope*-1).toFixed(2)+'s'):'—'}</span></div>
+      <div class="pm-row"><span class="pm-lbl">Consistency (σ)</span><span class="pm-val">${sigStr}</span></div>
+      <div class="pm-row"><span class="pm-lbl">Total shots</span><span class="pm-val">${hist?hist.shotCount:0}</span></div>
+      ${slotId?`
       <div class="pm-section">Manual offset (seconds)</div>
       <input class="pm-input" id="pm-inp-off" type="number" step="0.01" value="${man.toFixed(2)}">
       <div class="pm-btn" data-action="save-off" data-id="${slotId}">Set Override</div>
@@ -1357,6 +1420,8 @@ const App = {
         case 'rename-profile': this._renameProfile(el.dataset.name); break;
         case 'delete-profile': this._deleteProfile(el.dataset.name); break;
         case 'export':         this.exportCSV(); break;
+        case 'show-graph':     this.showGraph(el.dataset.type); break;
+        case 'toggle-scale':   this.toggleScale(); break;
       }
     };
 
@@ -1466,6 +1531,7 @@ const App = {
     };
     this._initEvents();
     this.refreshProfiles();
+    this.refreshIceGhost();
     this.draw({liveBH:null,liveHH:null,...sw});
   },
 
@@ -1526,26 +1592,149 @@ const App = {
   // ── EXPORT ───────────────────────────────────
   exportCSV(){
     if(!sess.history.length){ alert('No shots to export.'); return; }
-    let csv='Player,BH,UseBH,HH,Zone,Sweep\n';
+    const gn=sess.gameName||`${new Date().getMonth()+1}/${new Date().getDate()} Game`;
+    let csv='Game,Player,BH,BH Used,HH,HH Used,Result (ft),Zone,Sweep\n';
     sess.history.forEach(s=>{
       const name=s.player?(sess.profiles[s.player]||s.player):'—';
-      csv+=`${name},${s.bh!=null?s.bh.toFixed(2):''},${s.useBH?1:0},${s.hh!=null?s.hh.toFixed(2):''},${s.zone||''},${s.sweepLabel||''}\n`;
+      const zone=s.zone||'';
+      const ft=s.actual!=null?s.actual:'';
+      const useBH=s.useBH?'Y':'N';
+      const useHH=(s.useHH!==false)?'Y':'N';
+      csv+=`${gn},${name},${s.bh!=null?s.bh.toFixed(2):''},${useBH},${s.hh!=null?s.hh.toFixed(2):''},${useHH},${ft},${zone},${s.sweepLabel||''}\n`;
     });
+    const safeName=gn.replace(/[^a-zA-Z0-9_-]/g,'_');
     const blob=new Blob([csv],{type:'text/csv'});
-    const file=new File([blob],'clock-dilla.csv',{type:'text/csv'});
-    // Web Share API: works in iOS standalone/home-screen mode where blob downloads silently fail
+    const file=new File([blob],safeName+'.csv',{type:'text/csv'});
     if(navigator.canShare && navigator.canShare({files:[file]})){
       navigator.share({files:[file], title:'Clock-Dilla Export'}).catch(()=>{});
     } else {
-      // Fallback for desktop/regular browsers
       const a=document.createElement('a');
       a.href=URL.createObjectURL(blob);
-      a.download='clock-dilla.csv';
+      a.download=safeName+'.csv';
       document.body.appendChild(a);
       a.click();
       setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(a.href); },100);
     }
     this.closeMenu();
+  },
+
+  // ── GRAPHS ──────────────────────────────────
+  showGraph(type){
+    const titles={'BH':'Back-Hog','HH':'Hog-Hog','BH-Error':'BH Error','HH-Error':'HH Error'};
+    document.getElementById('graph-title').textContent=titles[type]||type;
+    // build legend
+    const leg=document.getElementById('graph-legend');
+    leg.innerHTML=CFG.slots.map(id=>{
+      const n=(sess.profiles[id]||id).slice(0,5);
+      return `<span><span class="gdot" style="background:${CFG.colors[id]}"></span>${n}</span>`;
+    }).join('');
+    this.openSub('sc-graph-view');
+    setTimeout(()=>{
+      const canvas=document.getElementById('graph-canvas');
+      if(!canvas) return;
+      const ctx=canvas.getContext('2d');
+      const rect=canvas.getBoundingClientRect();
+      canvas.width=rect.width*2; canvas.height=rect.height*2; ctx.scale(2,2);
+      if(type.includes('Error')) this._drawError(ctx,type,rect.width,rect.height);
+      else this._drawGraph(ctx,type,rect.width,rect.height);
+    },60);
+  },
+
+  _drawGraph(ctx,type,w,h){
+    const xMin=type==='BH'?3.4:12.5, xMax=type==='BH'?4.7:18.0;
+    const yMin=5, yMax=30;
+    const pad={left:26,bottom:18,top:4,right:4};
+    const mapX=v=>pad.left+((v-xMin)/(xMax-xMin))*(w-pad.left-pad.right);
+    const mapY=v=>(h-pad.bottom)-((v-yMin)/(yMax-yMin))*(h-pad.top-pad.bottom);
+    ctx.font='7px sans-serif'; ctx.textAlign='left';
+    ['Mid','T 12','T 8','TEE','B 8','B 12'].forEach(name=>{
+      const z=CFG.zones.find(z=>z.n===name); if(!z) return;
+      const y=mapY(z.d);
+      ctx.strokeStyle='#222'; ctx.beginPath(); ctx.moveTo(pad.left,y); ctx.lineTo(w-pad.right,y); ctx.stroke();
+      ctx.fillStyle='#555'; ctx.fillText(name,1,y-1);
+    });
+    const xStep=type==='BH'?0.2:1.0;
+    ctx.fillStyle='#444'; ctx.textAlign='center';
+    for(let xv=xMin;xv<=xMax+0.001;xv+=xStep){
+      const x=mapX(xv);
+      ctx.strokeStyle='#1a1a1a'; ctx.beginPath(); ctx.moveTo(x,pad.top); ctx.lineTo(x,h-pad.bottom); ctx.stroke();
+      ctx.fillStyle='#444'; ctx.fillText(xv.toFixed(1),x,h-3);
+    }
+    const slope=type==='BH'?CFG.bhSlope:CFG.hhSlope;
+    const int_=type==='BH'?CFG.bhInt:CFG.hhInt;
+    const off=type==='BH'?sess.bh.iceBase:sess.hh.iceOff;
+    ctx.strokeStyle='cyan'; ctx.lineWidth=1.5; ctx.beginPath();
+    ctx.moveTo(mapX(xMin),mapY(slope*xMin+int_+off));
+    ctx.lineTo(mapX(xMax),mapY(slope*xMax+int_+off));
+    ctx.stroke(); ctx.lineWidth=1;
+    sess.history.forEach(s=>{
+      if(!s.actual) return;
+      const t=type==='BH'?s.bh:s.hh;
+      if(t<xMin||t>xMax) return;
+      let y=s.actual;
+      if(type==='BH'&&s.sweep) y-=s.sweep;
+      ctx.fillStyle=CFG.colors[s.player]||'#666';
+      ctx.beginPath(); ctx.arc(mapX(t),mapY(y),3,0,Math.PI*2); ctx.fill();
+    });
+  },
+
+  _drawError(ctx,type,w,h){
+    const shots=sess.history.filter(s=>s.actual!=null&&(type==='BH-Error'?s.useBH:(s.useHH!==false)));
+    if(!shots.length) return;
+    const yRange=10;
+    const padB=14;
+    const mapX=idx=>(idx/(shots.length+1))*(w-12)+8;
+    const mapY=val=>((h-padB)/2)-(val/yRange)*((h-padB)/2);
+    const midY=(h-padB)/2;
+    ctx.strokeStyle='#333'; ctx.beginPath(); ctx.moveTo(0,midY); ctx.lineTo(w,midY); ctx.stroke();
+    ctx.strokeStyle='#1a1a1a'; ctx.beginPath();
+    ctx.moveTo(0,mapY(5)); ctx.lineTo(w,mapY(5));
+    ctx.moveTo(0,mapY(-5)); ctx.lineTo(w,mapY(-5));
+    ctx.stroke();
+    ctx.fillStyle='#444'; ctx.font='7px sans-serif'; ctx.textAlign='left';
+    ctx.fillText('+5',2,mapY(5)-1); ctx.fillText('0',2,midY-1); ctx.fillText('-5',2,mapY(-5)-1);
+    const slope=type==='BH-Error'?CFG.bhSlope:CFG.hhSlope;
+    const int_=type==='BH-Error'?CFG.bhInt:CFG.hhInt;
+    for(let i=0;i<shots.length;i++){
+      const s=shots[i];
+      const off=type==='BH-Error'?sess.bh.iceBase:sess.hh.iceOff;
+      const t=type==='BH-Error'?s.bh:s.hh;
+      const pred=slope*t+int_+off;
+      let act=s.actual;
+      if(type==='BH-Error'&&s.sweep) act-=s.sweep;
+      const err=act-pred;
+      ctx.fillStyle=CFG.colors[s.player]||'#666';
+      ctx.beginPath(); ctx.arc(mapX(shots.length-i),mapY(err),3,0,Math.PI*2); ctx.fill();
+    }
+  },
+
+  // ── ICE GHOST on START button ─────────────────
+  refreshIceGhost(){
+    const ICE_D={'T 12':15.5,TEE:21.0,'B 12':26.5};
+    let bhOff=sess.bh.iceBase;
+    if(sess.active){
+      const man=sess.manOff[sess.active]||0;
+      bhOff+=man!==0?man*CFG.bhSlope:(sess.slots[sess.active]?.effectiveOff||0);
+    }
+    const hhOff=sess.hh.iceOff;
+    const ghBH=document.getElementById('ice-ghost-bh');
+    const ghHH=document.getElementById('ice-ghost-hh');
+    if(!ghBH||!ghHH) return;
+    const zones=['T 12','TEE','B 12'];
+    const bhSpans=ghBH.children;
+    const hhSpans=ghHH.children;
+    zones.forEach((z,i)=>{
+      const d=ICE_D[z];
+      const bh=(d-CFG.bhInt-bhOff)/CFG.bhSlope;
+      const hh=(d-CFG.hhInt-hhOff)/CFG.hhSlope;
+      if(bhSpans[i]) bhSpans[i].textContent=bh>0?bh.toFixed(2):'—';
+      if(hhSpans[i]) hhSpans[i].textContent=hh>0?hh.toFixed(2):'—';
+    });
+  },
+
+  // ── FULL-SCREEN SCALE TOGGLE ──────────────────
+  toggleScale(){
+    document.body.classList.toggle('fullscreen-mode');
   },
 
 };
