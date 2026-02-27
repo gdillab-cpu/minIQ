@@ -163,18 +163,25 @@ body {
 }
 .start-cover.peek .lbl-main { display: none; }
 .start-cover.peek .lbl-peek { display: block; }
-/* Ghost ice numbers on START button */
+/* Ghost ice numbers + curling rings on START button */
+.ice-rings-wrap {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none; padding: 0 10px;
+}
+.ice-rings-svg {
+  width: 80px; height: 80px; opacity: 0.12; flex-shrink: 0;
+}
 .ice-ghost {
-  position: absolute; top: 0; bottom: 0;
-  display: flex; flex-direction: column; justify-content: space-evenly;
-  padding: 12px 0;
+  display: flex; flex-direction: column; justify-content: space-between;
+  height: 80px; flex: 1; flex-shrink: 0;
   font-size: 9px; font-weight: 600; font-variant-numeric: tabular-nums;
-  color: rgba(48,209,88,0.14); letter-spacing: 0; pointer-events: none;
+  color: rgba(48,209,88,0.22); letter-spacing: 0; pointer-events: none;
   line-height: 1;
 }
-.ice-ghost.left  { left: 8px; align-items: flex-start; }
-.ice-ghost.right { right: 8px; align-items: flex-end; }
-.start-cover.peek .ice-ghost { display: none; }
+.ice-ghost.left  { align-items: flex-start; }
+.ice-ghost.right { align-items: flex-end; }
+.start-cover.peek .ice-rings-wrap { display: none; }
 /* Graph canvas in sub-screen */
 .graph-canvas { width: 100%; height: 140px; background: #080808; border-radius: 4px; }
 .graph-legend { display: flex; justify-content: center; gap: 6px; padding: 4px 0; flex-wrap: wrap; }
@@ -341,8 +348,17 @@ body.fullscreen-mode #hint { display: none !important; }
     </div>
 
     <div class="start-cover" id="start-cover" data-action="start">
-      <div class="ice-ghost left" id="ice-ghost-bh"><span>—</span><span>—</span><span>—</span></div>
-      <div class="ice-ghost right" id="ice-ghost-hh"><span>—</span><span>—</span><span>—</span></div>
+      <div class="ice-rings-wrap">
+        <div class="ice-ghost left" id="ice-ghost-bh"><span>—</span><span>—</span><span>—</span></div>
+        <svg class="ice-rings-svg" viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="38" fill="none" stroke="#30D158" stroke-width="0.7"/>
+          <circle cx="40" cy="40" r="25" fill="none" stroke="#30D158" stroke-width="0.7"/>
+          <circle cx="40" cy="40" r="13" fill="none" stroke="#30D158" stroke-width="0.7"/>
+          <circle cx="40" cy="40" r="3.5" fill="#30D158" opacity="0.5"/>
+          <line x1="0" y1="40" x2="80" y2="40" stroke="#30D158" stroke-width="0.4" opacity="0.5"/>
+        </svg>
+        <div class="ice-ghost right" id="ice-ghost-hh"><span>—</span><span>—</span><span>—</span></div>
+      </div>
       <span class="lbl-main" id="start-lbl">START</span>
       <span class="lbl-peek">START</span>
     </div>
@@ -1046,8 +1062,9 @@ const App = {
     let predZ=null;
     if(inTray && selZ===null && pendShot){
       const bh=pendShot.bh, hh=pendShot.hh;
-      const ft=pendShot.useBH&&bh>0 ? sess.predict('BH',bh)
-             : pendShot.useHH&&hh>0 ? sess.predict('HH',hh) : null;
+      // Prefer HH estimate (more accurate) when available, fall back to BH
+      const ft=pendShot.useHH&&hh>0 ? sess.predict('HH',hh)
+             : pendShot.useBH&&bh>0 ? sess.predict('BH',bh) : null;
       if(ft!=null) predZ=distToZone(ft);
     }
     const useBH = pendShot ? pendShot.useBH : sw.enableBH;
@@ -1124,6 +1141,8 @@ const App = {
       this._hideTray(); sw.reset();
       // Re-enable BH for next shot (mirrors full-size checkCommit)
       sw.enableBH=true;
+      // Reset profile selection back to none after commit (mirrors full-size)
+      sess.active=null;
       this.draw({liveBH:null,liveHH:null,...sw});
       this.refreshProfiles();
     }, 80);
