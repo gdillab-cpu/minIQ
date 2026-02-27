@@ -176,14 +176,14 @@ body {
   pointer-events: none; padding: 0 10px;
 }
 .ice-rings-svg {
-  width: 100px; height: 100px; opacity: 0.12; flex-shrink: 0;
+  width: 100px; height: 115px; opacity: 0.12; flex-shrink: 0;
 }
 .ice-ghost {
   display: flex; flex-direction: column; justify-content: space-between;
-  height: 100px; flex: 1; flex-shrink: 0;
+  height: 115px; flex: 1; flex-shrink: 0;
   font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
   color: rgba(48,209,88,0.22); letter-spacing: 0; pointer-events: none;
-  line-height: 1;
+  line-height: 1; padding: 2px 0 18px;
 }
 .ice-ghost.left  { align-items: flex-start; }
 .ice-ghost.right { align-items: flex-end; }
@@ -303,6 +303,9 @@ body.fullscreen-mode #hint { display: none !important; }
 .pm-input{ background: #111; border: 1px solid #333; color: #fff; font-size: 11px; font-weight: 700; padding: 5px 8px; border-radius: 4px; width: 100%; text-align: center; font-family: inherit; margin-top: 5px; outline: none; }
 .pm-btn  { background: #141414; color: #0A84FF; font-size: 10px; font-weight: 700; padding: 7px; border-radius: 6px; cursor: pointer; width: 100%; margin-top: 5px; text-align: center; touch-action: manipulation; }
 .pm-section { font-size: 9px; color: #444; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-top: 8px; margin-bottom: 2px; }
+.pm-stepper { display: flex; align-items: center; justify-content: center; gap: 0; margin-top: 4px; }
+.pm-step-btn { width: 38px; height: 32px; background: #1a1a1a; color: #0A84FF; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; cursor: pointer; touch-action: manipulation; border-radius: 6px; }
+.pm-step-val { width: 60px; text-align: center; font-size: 12px; font-weight: 700; color: #888; font-variant-numeric: tabular-nums; }
 </style>
 </head>
 <body>
@@ -357,14 +360,24 @@ body.fullscreen-mode #hint { display: none !important; }
     <div class="start-cover" id="start-cover" data-action="start">
       <div class="ice-rings-wrap">
         <div class="ice-ghost left" id="ice-ghost-bh"><span>—</span><span>—</span><span>—</span></div>
-        <svg class="ice-rings-svg" viewBox="0 0 80 80">
-          <line x1="0" y1="2" x2="80" y2="2" stroke="#30D158" stroke-width="0.5" opacity="0.6"/>
+        <svg class="ice-rings-svg" viewBox="0 0 80 92">
+          <!-- Shaded 12-foot ring (between r=38 and r=25) -->
+          <circle cx="40" cy="40" r="38" fill="#30D158" fill-opacity="0.025"/>
+          <circle cx="40" cy="40" r="25" fill="#0a1a0d"/>
+          <!-- Shaded 4-foot ring (between r=13 and r=3.5) -->
+          <circle cx="40" cy="40" r="13" fill="#30D158" fill-opacity="0.03"/>
+          <circle cx="40" cy="40" r="3.5" fill="#0a1a0d"/>
+          <!-- Ring outlines -->
           <circle cx="40" cy="40" r="38" fill="none" stroke="#30D158" stroke-width="0.7"/>
           <circle cx="40" cy="40" r="25" fill="none" stroke="#30D158" stroke-width="0.7"/>
           <circle cx="40" cy="40" r="13" fill="none" stroke="#30D158" stroke-width="0.7"/>
           <circle cx="40" cy="40" r="3.5" fill="#30D158" opacity="0.5"/>
-          <line x1="0" y1="40" x2="80" y2="40" stroke="#30D158" stroke-width="0.4" opacity="0.5"/>
-          <line x1="0" y1="78" x2="80" y2="78" stroke="#30D158" stroke-width="0.5" opacity="0.6"/>
+          <!-- Back line only -->
+          <line x1="0" y1="78" x2="80" y2="78" stroke="#30D158" stroke-width="0.7"/>
+          <!-- Hack -->
+          <rect x="34" y="87" width="12" height="2.5" rx="1" fill="#30D158" fill-opacity="0.18"/>
+          <line x1="37" y1="86" x2="37" y2="90" stroke="#30D158" stroke-width="0.5" opacity="0.12"/>
+          <line x1="43" y1="86" x2="43" y2="90" stroke="#30D158" stroke-width="0.5" opacity="0.12"/>
         </svg>
         <div class="ice-ghost right" id="ice-ghost-hh"><span>—</span><span>—</span><span>—</span></div>
       </div>
@@ -917,6 +930,11 @@ class Session {
     g.name=name; this.save();
   }
 
+  deleteArchive(id){
+    this.archives=this.archives.filter(a=>a.id!==id);
+    this.save();
+  }
+
   loadArchive(id){
     const g=this.archives.find(a=>a.id===id); if(!g) return;
     this.history=[...g.history];
@@ -1365,9 +1383,12 @@ const App = {
       <div class="pm-row"><span class="pm-lbl">Consistency (σ)</span><span class="pm-val">${sigStr}</span></div>
       <div class="pm-row"><span class="pm-lbl">Total shots</span><span class="pm-val">${hist?hist.shotCount:0}</span></div>
       ${slotId?`
-      <div class="pm-section">Manual offset (seconds)</div>
-      <input class="pm-input" id="pm-inp-off" type="number" step="0.01" value="${man.toFixed(2)}">
-      <div class="pm-btn" data-action="save-off" data-id="${slotId}">Set Override</div>
+      <div class="pm-section">Manual offset</div>
+      <div class="pm-stepper">
+        <div class="pm-step-btn" data-action="adj-off" data-id="${slotId}" data-dir="-1">−</div>
+        <div class="pm-step-val" id="pm-off-val">${man===0?'n/a':((man>0?'+':'')+man.toFixed(2)+'s')}</div>
+        <div class="pm-step-btn" data-action="adj-off" data-id="${slotId}" data-dir="1">+</div>
+      </div>
       `:''}
     `;
     const modal=document.getElementById('pm-modal');
@@ -1398,6 +1419,15 @@ const App = {
   _saveOff(id){
     const v=parseFloat(document.getElementById('pm-inp-off')?.value||'0');
     sess.manOff[id]=isNaN(v)?0:parseFloat(v.toFixed(2)); sess.save();
+  },
+  _adjOff(id, dir){
+    const cur=sess.manOff[id]||0;
+    const nv=parseFloat((cur + dir*0.02).toFixed(2));
+    sess.manOff[id]=nv; sess.save();
+    sess.recalibrate();
+    const el=document.getElementById('pm-off-val');
+    if(el) el.textContent=nv===0?'n/a':((nv>0?'+':'')+nv.toFixed(2)+'s');
+    this.refreshProfiles(); this.draw({liveBH:null,liveHH:null,...sw});
   },
 
   _renameProfile(name){
@@ -1450,6 +1480,7 @@ const App = {
         case 'open-pm':     this.openPM(el.dataset.name); break;
         case 'save-name':   this._saveName(el.dataset.id); break;
         case 'save-off':    this._saveOff(el.dataset.id); break;
+        case 'adj-off':     this._adjOff(el.dataset.id, parseInt(el.dataset.dir)); break;
         case 'load-game':   this._loadGame(parseInt(el.dataset.id)); break;
         case 'rename-game':    this._renameGame(parseInt(el.dataset.id)); break;
         case 'delete-game':    this._deleteGame(parseInt(el.dataset.id)); break;
@@ -1732,8 +1763,8 @@ const App = {
     ctx.moveTo(0,mapY(5)); ctx.lineTo(w,mapY(5));
     ctx.moveTo(0,mapY(-5)); ctx.lineTo(w,mapY(-5));
     ctx.stroke();
-    ctx.fillStyle='#444'; ctx.font='7px sans-serif'; ctx.textAlign='left';
-    ctx.fillText('+5',2,mapY(5)-1); ctx.fillText('0',2,midY-1); ctx.fillText('-5',2,mapY(-5)-1);
+    ctx.fillStyle='#555'; ctx.font='9px sans-serif'; ctx.textAlign='left';
+    ctx.fillText("+5'",2,mapY(5)-1); ctx.fillText("0'",2,midY-1); ctx.fillText("-5'",2,mapY(-5)-1);
     const slope=type==='BH-Error'?CFG.bhSlope:CFG.hhSlope;
     const int_=type==='BH-Error'?CFG.bhInt:CFG.hhInt;
     for(let i=0;i<plotShots.length;i++){
