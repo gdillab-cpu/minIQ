@@ -85,12 +85,13 @@ body {
 .profile-bar.simple-hidden { height: 0; overflow: hidden; padding: 0; border: none; }
 .p-btn {
   background: #111; border-radius: 4px;
-  font-size: 9px; font-weight: 800; color: #444;
+  font-size: 11px; font-weight: 800; color: #444;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 2px; cursor: pointer; letter-spacing: 0.5px;
+  gap: 0px; cursor: pointer; letter-spacing: 0.5px;
   transition: background 0.08s, color 0.08s;
+  padding-top: 2px;
 }
-.p-btn .pdot { width: 3px; height: 3px; border-radius: 50%; background: #fff; opacity: 0; }
+.p-btn .pdot { width: 3px; height: 3px; border-radius: 50%; background: #fff; opacity: 0; margin-top: -1px; }
 .p-btn.active { background: #1e1e1e; color: #fff; }
 .p-btn.active .pdot { opacity: 0.5; }
 .p-btn.calibrated .pdot { opacity: 0.9; }
@@ -134,9 +135,9 @@ body {
 .gb.sweep.sel  { background: #1e1030; color: #BF5AF2; }
 .gb.sweep:active { background: #221438; }
 .gb.sweep.off  { background: #060606; color: #111; cursor: default; pointer-events: none; }
-/* Discard — faint red */
-.gb.disc   { background: rgba(255,69,58,0.06); border: 1px dashed rgba(255,69,58,0.25); color: rgba(255,69,58,0.35); font-size: 8px; font-style: italic; }
-.gb.disc:active { background: rgba(255,69,58,0.15); border-color: #FF453A; color: #FF453A; }
+/* Discard — faint red X */
+.gb.disc   { background: rgba(255,69,58,0.04); border: 1px dashed rgba(255,69,58,0.15); color: rgba(255,69,58,0.18); }
+.gb.disc:active { background: rgba(255,69,58,0.12); border-color: rgba(255,69,58,0.5); color: rgba(255,69,58,0.6); }
 /* Blue accent divider between zone cols and sweep col */
 .gb.sweep { border-left: 1px solid rgba(10,132,255,0.15); }
 
@@ -156,10 +157,11 @@ body {
 .start-cover .lbl-peek {
   display: none;
   position: absolute;
-  /* bottom: -0.5em = text center sits at cover's bottom edge, top half visible in strip */
-  bottom: -0.5em;
-  font-size: 22px; font-weight: 800; letter-spacing: 3px;
-  color: #30D158;
+  top: 2px;
+  font-size: 18px; font-weight: 800; letter-spacing: 3px;
+  color: #30D158; opacity: 0.5;
+  /* clip bottom half so only tops of letters peek */
+  height: 22px; overflow: hidden; line-height: 1.2;
 }
 .start-cover.peek .lbl-main { display: none; }
 .start-cover.peek .lbl-peek { display: block; }
@@ -286,9 +288,10 @@ body.fullscreen-mode #hint { display: none !important; }
 /* profile modal */
 .pm { position: absolute; inset: 0; z-index: 150; background: rgba(0,0,0,0.96); display: none; flex-direction: column; border-radius: 49px; overflow: hidden; }
 .pm.show { display: flex; }
-.pm-hdr  { padding: 16px 20px 12px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #141414; flex-shrink: 0; }
-.pm-title{ font-size: 12px; font-weight: 800; color: #fff; }
-.pm-close{ font-size: 11px; color: #0A84FF; cursor: pointer; }
+.pm-hdr  { padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #141414; flex-shrink: 0; gap: 6px; }
+.pm-title{ font-size: 9px; font-weight: 600; color: #555; white-space: nowrap; }
+.pm-close{ font-size: 11px; color: #0A84FF; cursor: pointer; white-space: nowrap; }
+.pm-hdr-input { background: #111; border: 1px solid #333; color: #fff; font-size: 12px; font-weight: 800; padding: 4px 6px; border-radius: 4px; width: 52px; text-align: center; font-family: inherit; outline: none; text-transform: uppercase; letter-spacing: 0.5px; }
 .pm-body { padding: 8px 18px; overflow-y: auto; }
 .pm-row  { padding: 4px 0; font-size: 10px; display: flex; justify-content: space-between; border-bottom: 1px solid #0a0a0a; }
 .pm-lbl  { color: #555; }
@@ -333,7 +336,7 @@ body.fullscreen-mode #hint { display: none !important; }
       <!-- Row 2 -->
       <div class="gb house" data-action="zone" data-z="T 12">T 12</div>
       <div class="gb house" data-action="zone" data-z="T 8">T 8</div>
-      <div class="gb disc"  data-action="discard">disc</div>
+      <div class="gb disc"  data-action="discard"><svg viewBox="0 0 16 16" width="14" height="14"><line x1="3" y1="3" x2="13" y2="13" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="13" y1="3" x2="3" y2="13" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></div>
       <div class="gb sweep" data-action="sweep" data-s="L">L</div>
       <!-- Row 3 -->
       <div class="gb house" data-action="zone" data-z="T 4">T 4</div>
@@ -351,11 +354,13 @@ body.fullscreen-mode #hint { display: none !important; }
       <div class="ice-rings-wrap">
         <div class="ice-ghost left" id="ice-ghost-bh"><span>—</span><span>—</span><span>—</span></div>
         <svg class="ice-rings-svg" viewBox="0 0 80 80">
+          <line x1="0" y1="2" x2="80" y2="2" stroke="#30D158" stroke-width="0.5" opacity="0.6"/>
           <circle cx="40" cy="40" r="38" fill="none" stroke="#30D158" stroke-width="0.7"/>
           <circle cx="40" cy="40" r="25" fill="none" stroke="#30D158" stroke-width="0.7"/>
           <circle cx="40" cy="40" r="13" fill="none" stroke="#30D158" stroke-width="0.7"/>
           <circle cx="40" cy="40" r="3.5" fill="#30D158" opacity="0.5"/>
           <line x1="0" y1="40" x2="80" y2="40" stroke="#30D158" stroke-width="0.4" opacity="0.5"/>
+          <line x1="0" y1="78" x2="80" y2="78" stroke="#30D158" stroke-width="0.5" opacity="0.6"/>
         </svg>
         <div class="ice-ghost right" id="ice-ghost-hh"><span>—</span><span>—</span><span>—</span></div>
       </div>
@@ -373,8 +378,7 @@ body.fullscreen-mode #hint { display: none !important; }
         <div style="display:flex;gap:4px;align-items:center;">
           <div class="mode-btn" id="scale-btn" data-action="toggle-scale" style="width:22px;height:22px;cursor:pointer;">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="width:100%;height:100%;display:block;">
-              <rect x="1" y="1" width="22" height="22" rx="4" fill="#555" opacity="0.4"/>
-              <path d="M4 9V4h5M20 15v5h-5M4 15v5h5M20 9V4h-5" fill="none" stroke="#888" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M4 14v6h6M20 10V4h-6M4 14l6-6M20 10l-6 6" fill="none" stroke="#888" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
           <div class="mode-btn" id="mode-btn" data-action="toggle-mode">
@@ -393,8 +397,8 @@ body.fullscreen-mode #hint { display: none !important; }
         <div class="menu-item c-grey nerd-item"   data-action="nav" data-sub="sc-log">Shot Log</div>
         <div class="menu-item c-grey nerd-item"   data-action="nav" data-sub="sc-graphs">Graphs</div>
         <div class="menu-item c-purple nerd-item" data-action="nav" data-sub="sc-profiles">Profiles</div>
+        <div class="menu-item c-grey nerd-item"   data-action="export">Export CSV</div>
         <div class="menu-item c-blue"             data-action="nav" data-sub="sc-save">Save Game</div>
-        <div class="menu-item c-blue"             data-action="export">Export CSV</div>
         <div class="menu-item c-orange"           data-action="nav" data-sub="sc-games">Load Game</div>
         <div class="menu-item c-red"              data-action="confirm-new">New Game</div>
       </div>
@@ -489,6 +493,7 @@ const CFG = {
 
 function distToZone(ft) {
   if (ft == null) return null;
+  if (ft < 0) return 'Hogged';
   let best=CFG.zones[0], bd=Infinity;
   for (const z of CFG.zones) { const d=Math.abs(z.d-ft); if(d<bd){bd=d;best=z;} }
   return best.n;
@@ -1047,7 +1052,7 @@ const App = {
       const dot=document.getElementById('pdot-'+id);
       if(!btn) return;
       btn.classList.toggle('active', sess.active===id);
-      lbl.textContent=(sess.profiles[id]||id).slice(0,5).toUpperCase();
+      lbl.textContent=(sess.profiles[id]||id).slice(0,4).toUpperCase();
       const n=sess.slots[id]?.n||0;
       btn.classList.toggle('calibrated',n>=3);
       if(dot){ dot.style.opacity=n>=3?'0.9':'0.3'; }
@@ -1323,22 +1328,31 @@ const App = {
 
   // Profile modal (slot based, for renaming/override)
   openPM(slotOrName){
-    // detect if slot id or player name
     const isSlot=CFG.slots.includes(slotOrName);
     const slotId=isSlot?slotOrName:CFG.slots.find(s=>sess.profiles[s]===slotOrName)||null;
     const name=isSlot?(sess.profiles[slotOrName]||slotOrName):slotOrName;
     const slot=slotId?sess.slots[slotId]||{}:{};
     const man=slotId?sess.manOff[slotId]||0:0;
     const hist=PS.get(name);
-    const sigStr=hist&&hist.shotCount>=2?('±'+(hist.histSigma/Math.abs(CFG.bhSlope)).toFixed(2)+'s'):'—';
-    document.getElementById('pm-title').textContent='';
+    const sigSec=hist&&hist.shotCount>=2?(hist.histSigma/Math.abs(CFG.bhSlope)).toFixed(2):null;
+    const sigFt=hist&&hist.shotCount>=2?hist.histSigma.toFixed(1):null;
+    const sigStr=sigSec?('±'+sigSec+'s (±'+sigFt+'ft)'):'—';
+    // Auto offset with push/pull label
+    let offStr='—', offLabel='';
+    if(slot.effectiveOff){
+      const offSec=(slot.effectiveOff/CFG.bhSlope*-1).toFixed(2);
+      offStr=offSec+'s';
+      const offFt=slot.effectiveOff;
+      offLabel=offFt>0.3?' · pull':offFt<-0.3?' · push':'';
+    }
+    // Header: "Active Profile:" + input + Done
+    const hdr=document.querySelector('.pm-hdr');
+    hdr.innerHTML=slotId
+      ?`<div class="pm-title">Active Profile:</div><input class="pm-hdr-input" id="pm-inp-name" maxlength="4" value="${name}"><div class="pm-close" data-action="close-pm">Done</div>`
+      :`<div class="pm-title">${name}</div><div class="pm-close" data-action="close-pm">Done</div>`;
     document.getElementById('pm-body').innerHTML=`
-      ${slotId?`
-      <div class="pm-section">Rename slot</div>
-      <input class="pm-input" id="pm-inp-name" maxlength="5" value="${name}">
-      `:''}
       <div class="pm-row"><span class="pm-lbl">In-game shots</span><span class="pm-val">${slot.n||0}</span></div>
-      <div class="pm-row"><span class="pm-lbl">Auto offset</span><span class="pm-val">${slot.effectiveOff?((slot.effectiveOff/CFG.bhSlope*-1).toFixed(2)+'s'):'—'}</span></div>
+      <div class="pm-row"><span class="pm-lbl">Auto offset</span><span class="pm-val">${offStr}${offLabel}</span></div>
       <div class="pm-row"><span class="pm-lbl">Consistency (σ)</span><span class="pm-val">${sigStr}</span></div>
       <div class="pm-row"><span class="pm-lbl">Total shots</span><span class="pm-val">${hist?hist.shotCount:0}</span></div>
       ${slotId?`
@@ -1366,7 +1380,7 @@ const App = {
     const v=document.getElementById('pm-inp-name')?.value.trim();
     if(!v) return;
     const oldName=(sess.profiles[id]||'').toUpperCase();
-    const newName=v.slice(0,5).toUpperCase();
+    const newName=v.slice(0,4).toUpperCase();
     sess.profiles[id]=newName; sess.save();
     // Re-scan in-session history and append any shots for this slot under the new name
     if(newName && !CFG.defaultNames.has(newName)){
@@ -1386,7 +1400,7 @@ const App = {
   _renameProfile(name){
     const newName=prompt('Rename profile:', name);
     if(!newName||!newName.trim()) return;
-    const n=newName.trim().slice(0,5).toUpperCase();
+    const n=newName.trim().slice(0,4).toUpperCase();
     if(CFG.defaultNames.has(n)){ alert('Cannot use a reserved name.'); return; }
     PS.rename(name, n);
     // Update any matching slot label too
@@ -1501,7 +1515,10 @@ const App = {
         // Must be more horizontal than vertical, and over threshold
         if(Math.abs(dx)>30 && Math.abs(dx)>dy*1.5){
           if(dx<0 && !m.classList.contains('open')){
-            // Left swipe → open menu
+            // Left swipe → open menu; if timer just started from the touch, reset it
+            if(sw.state==='RUNNING' && (Date.now()-sw.t0)<800){
+              sw.reset(); this.draw({liveBH:null,liveHH:null,...sw});
+            }
             this.openMenu(); touchTarget=null; longPressTimer&&clearTimeout(longPressTimer); return;
           }
           if(dx>0 && m.classList.contains('open')){
@@ -1644,7 +1661,7 @@ const App = {
     // build legend
     const leg=document.getElementById('graph-legend');
     leg.innerHTML=CFG.slots.map(id=>{
-      const n=(sess.profiles[id]||id).slice(0,5);
+      const n=(sess.profiles[id]||id).slice(0,4);
       return `<span><span class="gdot" style="background:${CFG.colors[id]}"></span>${n}</span>`;
     }).join('');
     this.openSub('sc-graph-view');
@@ -1702,7 +1719,9 @@ const App = {
     if(!shots.length) return;
     const yRange=10;
     const padB=14;
-    const mapX=idx=>(idx/(shots.length+1))*(w-12)+8;
+    // shots[0]=newest (unshift order), we want oldest on left so reverse for plotting
+    const plotShots=[...shots].reverse(); // plotShots[0]=oldest
+    const mapX=idx=>(idx/(plotShots.length+1))*(w-12)+8;
     const mapY=val=>((h-padB)/2)-(val/yRange)*((h-padB)/2);
     const midY=(h-padB)/2;
     ctx.strokeStyle='#333'; ctx.beginPath(); ctx.moveTo(0,midY); ctx.lineTo(w,midY); ctx.stroke();
@@ -1714,8 +1733,8 @@ const App = {
     ctx.fillText('+5',2,mapY(5)-1); ctx.fillText('0',2,midY-1); ctx.fillText('-5',2,mapY(-5)-1);
     const slope=type==='BH-Error'?CFG.bhSlope:CFG.hhSlope;
     const int_=type==='BH-Error'?CFG.bhInt:CFG.hhInt;
-    for(let i=0;i<shots.length;i++){
-      const s=shots[i];
+    for(let i=0;i<plotShots.length;i++){
+      const s=plotShots[i];
       const off=type==='BH-Error'?sess.bh.iceBase:sess.hh.iceOff;
       const t=type==='BH-Error'?s.bh:s.hh;
       const pred=slope*t+int_+off;
@@ -1723,7 +1742,7 @@ const App = {
       if(type==='BH-Error'&&s.sweep) act-=s.sweep;
       const err=act-pred;
       ctx.fillStyle=CFG.colors[s.player]||'#666';
-      ctx.beginPath(); ctx.arc(mapX(shots.length-i),mapY(err),3,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(mapX(i+1),mapY(err),3,0,Math.PI*2); ctx.fill();
     }
   },
 
